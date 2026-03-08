@@ -108,6 +108,105 @@ body {
   background: rgba(255, 255, 255, 0.4);
 }
 
+/* Mobile responsiveness */
+@media (max-width: 390px) {
+  html, body {
+    overflow: hidden;
+  }
+  #app-main {
+    grid-template-columns: 0 1fr 0;
+  }
+
+  /* Hide inspector on mobile */
+  .inspector-panel {
+    display: none !important;
+  }
+
+  #mobile-inspector-toggle {
+    display: none !important;
+  }
+
+  /* Reduce HUD size */
+  .hud-panel {
+    position: fixed;
+    right: 0;
+    top: 3.5rem;
+    bottom: 0;
+    width: 8rem;
+    transform: translateX(100%);
+    z-index: 30;
+    transition: transform 0.3s ease;
+  }
+
+  .hud-panel.hud-visible {
+    transform: translateX(0);
+  }
+
+  /* Reduce padding in panels */
+  .inspector-panel > div:first-child {
+    padding: 0.75rem !important;
+  }
+
+  .inspector-panel > div:nth-child(2) .p-3 {
+    padding: 0.5rem !important;
+  }
+
+  #hud-content {
+    padding: 0.25rem !important;
+    min-width: auto !important;
+  }
+
+  #hud-content .space-y-8 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
+  #hud-content .space-y-4 > * + * {
+    margin-top: 0.25rem !important;
+  }
+
+  #hud-content .text-\[9px\] {
+    font-size: 7px !important;
+  }
+
+  #hud-content .text-\[10px\] {
+    font-size: 8px !important;
+  }
+
+  #color-science-panel .p-4 {
+    padding: 0.25rem !important;
+  }
+
+  /* Top bar adjustments */
+  #top-bar {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  #top-bar .flex.items-center.gap-3 {
+    gap: 0.25rem !important;
+  }
+
+  #top-bar .mono {
+    font-size: 7px !important;
+  }
+
+  /* Hide test mode on mobile */
+  #test-mode-btn {
+    display: none !important;
+  }
+
+  /* Make buttons smaller */
+  #top-bar label {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+
+  #play-btn {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+}
+
 .mono {
   font-family: 'JetBrains Mono', 'Segoe UI', monospace;
 }

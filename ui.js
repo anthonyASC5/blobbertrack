@@ -115,6 +115,10 @@ function setupEventListeners() {
   document.getElementById('test-mode-btn').addEventListener('click', () => {
     window.location.href = 'testplace.html';
   });
+
+  // Mobile panel toggles
+  document.getElementById('mobile-inspector-toggle').addEventListener('click', toggleInspector);
+  document.getElementById('mobile-hud-toggle').addEventListener('click', toggleHUDMobile);
 }
 
 // Event handlers
@@ -179,6 +183,16 @@ function toggleHUD() {
     hudPanel.classList.add('collapsed');
     document.getElementById('hud-toggle-icon').innerHTML = ICONS.chevronRight;
   }
+}
+
+function toggleInspector() {
+  const panel = document.querySelector('.inspector-panel');
+  panel.classList.toggle('inspector-visible');
+}
+
+function toggleHUDMobile() {
+  const panel = document.querySelector('.hud-panel');
+  panel.classList.toggle('hud-visible');
 }
 
 function updateFilters() {

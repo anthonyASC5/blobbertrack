@@ -34,6 +34,18 @@
         </div>
 
         <div class="flex items-center gap-2">
+            <button id="mobile-inspector-toggle" class="md:hidden p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn">
+                <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
+                    <circle cx="8" cy="8" r="5.5"></circle>
+                    <circle cx="8" cy="8" r="2"></circle>
+                </svg>
+            </button>
+            <button id="mobile-hud-toggle" class="md:hidden p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn">
+                <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
+                    <circle cx="8" cy="8" r="2.5"></circle>
+                    <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M12.8 3.2l-1.4 1.4M4.6 11.4l-1.4 1.4"></path>
+                </svg>
+            </button>
             <label class="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-100 hover:bg-slate-200 transition-colors text-[10px] mono uppercase tracking-wider">
                 <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M1.5 4.5h5l1.5 1.5h6.5v6.5H1.5z"></path>
@@ -67,7 +79,7 @@
     <!-- Main Content -->
     <main id="app-main" class="overflow-hidden relative">
         <!-- Left Panel - Inspector & Majin Boo -->
-        <aside class="w-72 border-r border-slate-200 flex flex-col shrink-0 bg-black text-white min-h-0">
+        <aside class="inspector-panel w-72 border-r border-slate-200 flex flex-col shrink-0 bg-black text-white min-h-0">
             <!-- Grid 1: Blob Inspector -->
             <div class="flex-1 flex flex-col overflow-hidden min-h-0">
                 <div class="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
@@ -149,7 +161,7 @@
         </section>
 
         <!-- Right Panel - HUD Controls -->
-        <div id="right-column" class="flex shrink-0 min-h-0 relative">
+        <div id="right-column" class="hud-panel flex shrink-0 min-h-0 relative">
             <!-- Video Editor Panel -->
             <aside id="editor-panel" class="border-l border-slate-200 flex flex-col bg-white overflow-hidden absolute right-full top-0 bottom-0 w-[280px] hidden">
                 <div class="p-4 space-y-4">
