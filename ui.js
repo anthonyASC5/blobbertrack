@@ -5,11 +5,23 @@ let blobTracker;
 let videoSrc = null;
 let isMuted = false;
 
+const ICONS = {
+  play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z"></path></svg>',
+  pause: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9"></path></svg>',
+  gear: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.5"></circle><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M12.8 3.2l-1.4 1.4M4.6 11.4l-1.4 1.4"></path></svg>',
+  chevronRight: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"></path></svg>',
+  speaker: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h3l3-2.5v9L5.5 10h-3z"></path><path d="M10.5 6a2.5 2.5 0 010 4"></path><path d="M12 4.5a4.5 4.5 0 010 7"></path></svg>',
+  muted: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h3l3-2.5v9L5.5 10h-3z"></path><path d="M10.5 6l3 4M13.5 6l-3 4"></path></svg>',
+  camera: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="8" height="8" rx="1.5"></rect><path d="M10.5 7l3-1.5v5l-3-1.5z"></path></svg>',
+  stop: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7"></rect></svg>'
+};
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
   blobTracker = new BlobTracker();
   blobTracker.init('video', 'canvas', 'overlay', 'goo-canvas');
 
+  initializeIcons();
   setupEventListeners();
   updateUI();
 });
@@ -141,7 +153,7 @@ function loadVideo(url) {
 function startTracking() {
   blobTracker.startTracking();
   document.getElementById('start-overlay').classList.add('hidden');
-  document.getElementById('play-btn').innerHTML = '<span id="play-icon">⏸</span><span id="play-text">Pause</span>';
+  setPlayButtonState(true);
 }
 
 function togglePlay() {
@@ -150,10 +162,10 @@ function togglePlay() {
   if (blobTracker.isPlaying) {
     blobTracker.stopTracking();
     document.getElementById('video').pause();
-    document.getElementById('play-btn').innerHTML = '<span id="play-icon">▶</span><span id="play-text">Start Tracking</span>';
+    setPlayButtonState(false);
   } else {
     blobTracker.startTracking();
-    document.getElementById('play-btn').innerHTML = '<span id="play-icon">⏸</span><span id="play-text">Pause</span>';
+    setPlayButtonState(true);
   }
 }
 
@@ -162,10 +174,10 @@ function toggleHUD() {
   const isCollapsed = hudPanel.classList.contains('collapsed');
   if (isCollapsed) {
     hudPanel.classList.remove('collapsed');
-    document.getElementById('hud-toggle-icon').textContent = '⚙';
+    document.getElementById('hud-toggle-icon').innerHTML = ICONS.gear;
   } else {
     hudPanel.classList.add('collapsed');
-    document.getElementById('hud-toggle-icon').textContent = '▶';
+    document.getElementById('hud-toggle-icon').innerHTML = ICONS.chevronRight;
   }
 }
 
@@ -233,7 +245,7 @@ function setBlobColor(color) {
   document.querySelectorAll('.color-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  event.target.classList.add('active');
+  document.querySelector(`.color-btn[data-color="${color}"]`)?.classList.add('active');
   blobTracker.updateConfig({ blobColor: color });
 }
 
@@ -241,17 +253,29 @@ function toggleMute() {
   const video = document.getElementById('video');
   isMuted = !isMuted;
   video.muted = isMuted;
-  document.getElementById('mute-icon').textContent = isMuted ? '🔇' : '🔊';
+  document.getElementById('mute-icon').innerHTML = isMuted ? ICONS.muted : ICONS.speaker;
 }
 
 function toggleRecording() {
   if (blobTracker.processingRef.mediaRecorder?.state === 'recording') {
     blobTracker.stopRecording();
-    document.getElementById('record-btn').innerHTML = '<span>🎥</span>';
+    document.getElementById('record-icon').innerHTML = ICONS.camera;
   } else {
     blobTracker.startRecording();
-    document.getElementById('record-btn').innerHTML = '<span>⏹</span>';
+    document.getElementById('record-icon').innerHTML = ICONS.stop;
   }
+}
+
+function setPlayButtonState(isPlaying) {
+  document.getElementById('play-icon').innerHTML = isPlaying ? ICONS.pause : ICONS.play;
+  document.getElementById('play-text').textContent = isPlaying ? 'Pause' : 'Start Tracking';
+}
+
+function initializeIcons() {
+  setPlayButtonState(false);
+  document.getElementById('hud-toggle-icon').innerHTML = ICONS.gear;
+  document.getElementById('mute-icon').innerHTML = ICONS.speaker;
+  document.getElementById('record-icon').innerHTML = ICONS.camera;
 }
 
 function updateViewportInfo() {

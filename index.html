@@ -8,12 +8,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans overflow-hidden">
+<body id="app-shell" class="bg-slate-50 text-slate-900 font-sans">
     <!-- Top Bar -->
-    <header class="h-14 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-white shadow-sm">
+    <header id="top-bar" class="h-14 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-white shadow-sm">
         <div class="flex items-center gap-3">
             <div class="w-5 h-5 bg-slate-600 rounded-sm flex items-center justify-center">
-                <span class="text-white text-xs">⚡</span>
+                <svg class="ui-icon text-white" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M8 1.5l4.5 4.5L8 10.5 3.5 6 8 1.5z"></path>
+                </svg>
             </div>
             <h1 class="text-sm font-bold tracking-widest uppercase mono text-slate-900">Blob Machine</h1>
             <div class="h-4 w-[1px] bg-slate-200 mx-2"></div>
@@ -22,7 +24,10 @@
                 <span id="blob-count-display">BLOBS: 0</span>
                 <span id="status-display">STATUS: LOADING CV...</span>
                 <button id="test-mode-btn" class="ml-4 flex items-center gap-2 px-3 py-1 bg-slate-100 border-2 border-slate-300 border-b-slate-400 border-r-slate-400 hover:bg-slate-200 active:border-t-slate-400 active:border-l-slate-400 active:border-b-slate-200 active:border-r-slate-200 transition-all group hidden">
-                    <span class="text-emerald-600 group-hover:animate-pulse">🎮</span>
+                    <svg class="ui-icon text-emerald-600 group-hover:animate-pulse" viewBox="0 0 16 16" aria-hidden="true">
+                        <rect x="2.5" y="5" width="11" height="6" rx="1.5"></rect>
+                        <path d="M6 8H4m1-1v2m4-1h2"></path>
+                    </svg>
                     <span class="text-[9px] font-black text-emerald-600 tracking-tighter">TEST MODE</span>
                 </button>
             </div>
@@ -30,7 +35,9 @@
 
         <div class="flex items-center gap-2">
             <label class="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-100 hover:bg-slate-200 transition-colors text-[10px] mono uppercase tracking-wider">
-                <span>📁</span>
+                <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M1.5 4.5h5l1.5 1.5h6.5v6.5H1.5z"></path>
+                </svg>
                 Upload
                 <input type="file" id="video-upload" accept="video/*" class="hidden">
             </label>
@@ -40,34 +47,41 @@
             </button>
 
             <button id="play-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-900 text-white hover:bg-slate-800 transition-colors text-[10px] mono uppercase tracking-wider disabled:opacity-50">
-                <span id="play-icon">▶</span>
+                <span id="play-icon" class="icon-slot"></span>
                 <span id="play-text">Start Tracking</span>
             </button>
             <div class="h-4 w-[1px] bg-slate-200 mx-2"></div>
-            <button id="record-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                <span>🎥</span>
+            <button id="record-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn">
+                <span id="record-icon" class="icon-slot"></span>
             </button>
-            <button id="export-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                <span>💾</span>
+            <button id="export-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn">
+                <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M2.5 2.5h11v11h-11z"></path>
+                    <path d="M4.5 2.5v4h7v-4"></path>
+                    <path d="M5 11h6"></path>
+                </svg>
             </button>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 flex overflow-hidden relative">
+    <main id="app-main" class="overflow-hidden relative">
         <!-- Left Panel - Inspector & Majin Boo -->
-        <aside class="w-72 border-r border-slate-200 flex flex-col shrink-0 bg-black text-white">
+        <aside class="w-72 border-r border-slate-200 flex flex-col shrink-0 bg-black text-white min-h-0">
             <!-- Grid 1: Blob Inspector -->
-            <div class="flex-1 flex flex-col overflow-hidden">
+            <div class="flex-1 flex flex-col overflow-hidden min-h-0">
                 <div class="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
                     <div class="flex items-center gap-2">
-                        <span class="text-white/40">🎯</span>
+                        <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
+                            <circle cx="8" cy="8" r="5.5"></circle>
+                            <circle cx="8" cy="8" r="2"></circle>
+                        </svg>
                         <span class="text-[10px] mono uppercase tracking-widest font-bold text-white/60">Blob Inspector</span>
                     </div>
                     <span id="active-blobs" class="text-[10px] mono text-white/20">0 ACTIVE</span>
                 </div>
 
-                <div id="blob-list" class="flex-1 overflow-y-auto p-4 space-y-2">
+                <div id="blob-list" class="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
                     <div class="h-full flex items-center justify-center opacity-20">
                         <p class="text-[10px] mono uppercase tracking-widest text-white/40">No data stream</p>
                     </div>
@@ -77,7 +91,9 @@
             <!-- Grid 2: Majin Boo Goo -->
             <div class="h-64 border-t border-white/10 bg-black flex flex-col overflow-hidden">
                 <div class="p-3 border-b border-white/5 flex items-center gap-2">
-                    <span class="text-pink-500">⚡</span>
+                    <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M8 1.5l4.5 4.5L8 10.5 3.5 6 8 1.5z"></path>
+                    </svg>
                     <span class="text-[9px] mono uppercase tracking-widest font-bold text-white/40">Majin_Boo_Goo.sys</span>
                 </div>
                 <div class="flex-1 flex items-center justify-center relative overflow-hidden bg-white/5">
@@ -90,10 +106,12 @@
         </aside>
 
         <!-- Center - Video Preview -->
-        <section class="flex-1 relative bg-black flex items-center justify-center overflow-hidden group" id="video-section">
+        <section class="flex-1 relative bg-black flex items-center justify-center overflow-hidden group min-h-0" id="video-section">
             <div id="upload-zone" class="text-center space-y-4 cursor-pointer hover:bg-white/5 p-12 rounded-2xl transition-all border border-dashed border-white/10 group/upload">
                 <div class="w-20 h-20 border border-dashed border-white/20 rounded-full flex items-center justify-center mx-auto group-hover/upload:border-white/40 group-hover/upload:scale-110 transition-all">
-                    <span class="text-white/20 group-hover/upload:text-white/60 text-2xl">📁</span>
+                    <svg class="ui-icon ui-icon-lg text-white/20 group-hover/upload:text-white/60" viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M1.5 4.5h5l1.5 1.5h6.5v6.5H1.5z"></path>
+                    </svg>
                 </div>
                 <div class="space-y-2">
                     <p class="text-[12px] mono text-white/40 uppercase tracking-widest group-hover/upload:text-white/60">Drop video or click to upload</p>
@@ -131,13 +149,16 @@
         </section>
 
         <!-- Right Panel - HUD Controls -->
-        <div class="flex shrink-0">
+        <div id="right-column" class="flex shrink-0 min-h-0 relative">
             <!-- Video Editor Panel -->
-            <aside id="editor-panel" class="border-l border-slate-200 flex flex-col bg-white overflow-hidden relative hidden">
-                <div class="p-4 space-y-4 min-w-[280px]">
+            <aside id="editor-panel" class="border-l border-slate-200 flex flex-col bg-white overflow-hidden absolute right-full top-0 bottom-0 w-[280px] hidden">
+                <div class="p-4 space-y-4">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
-                            <span class="text-slate-400">🎥</span>
+                            <svg class="ui-icon text-slate-400" viewBox="0 0 16 16" aria-hidden="true">
+                                <rect x="2.5" y="4" width="8" height="8" rx="1.5"></rect>
+                                <path d="M10.5 7l3-1.5v5l-3-1.5z"></path>
+                            </svg>
                             <span class="text-[10px] mono uppercase tracking-widest font-bold text-slate-600">Video Editor</span>
                         </div>
                         <button id="close-editor" class="p-1 hover:bg-slate-100 rounded text-slate-400">
@@ -167,19 +188,22 @@
             </aside>
 
             <!-- HUD Controls Panel -->
-            <aside id="hud-panel" class="border-l border-slate-200 flex flex-col bg-black text-white relative z-10 w-80">
+            <aside id="hud-panel" class="border-l border-slate-200 flex flex-col bg-black text-white relative z-10 w-80 min-h-0">
                 <button id="toggle-hud" class="absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white text-black rounded-full flex items-center justify-center shadow-lg z-20 hover:scale-110 transition-transform">
-                    <span id="hud-toggle-icon">⚙</span>
+                    <span id="hud-toggle-icon" class="icon-slot"></span>
                 </button>
-                <div id="hud-content" class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-8 min-w-[320px]">
+                <div id="hud-content" class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-8 min-w-[320px] min-h-0">
                     <div class="space-y-4">
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-2">
-                                <span class="text-white/40">⚙</span>
+                                <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
+                                    <circle cx="8" cy="8" r="2.5"></circle>
+                                    <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M12.8 3.2l-1.4 1.4M4.6 11.4l-1.4 1.4"></path>
+                                </svg>
                                 <span class="text-[10px] mono uppercase tracking-widest font-bold text-white/60">Detection Pipeline</span>
                             </div>
                             <button id="mute-btn" class="p-1.5 rounded-sm bg-white/5 text-white/40 hover:bg-white/10 transition-colors">
-                                <span id="mute-icon">🔊</span>
+                                <span id="mute-icon" class="icon-slot"></span>
                             </button>
                         </div>
                         <div class="control-slider dark">
@@ -197,7 +221,9 @@
                     </div>
                     <div class="space-y-4">
                         <div class="flex items-center gap-2 mb-4">
-                            <span class="text-white/40">📐</span>
+                            <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M2.5 12.5L12.5 2.5M2.5 12.5h10M2.5 12.5v-10"></path>
+                            </svg>
                             <span class="text-[10px] mono uppercase tracking-widest font-bold text-white/60">Tracking Logic</span>
                         </div>
                         <div class="control-slider dark">
@@ -215,7 +241,12 @@
                     </div>
                     <div class="space-y-4">
                         <div class="flex items-center gap-2 mb-4">
-                            <span class="text-white/40">🎨</span>
+                            <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
+                                <circle cx="6" cy="6" r="1"></circle>
+                                <circle cx="10" cy="5" r="1"></circle>
+                                <circle cx="11" cy="9" r="1"></circle>
+                                <path d="M8 2a6 6 0 100 12h1.5a1.5 1.5 0 000-3H8.8a1.3 1.3 0 010-2.6H11A3 3 0 0011 2H8z"></path>
+                            </svg>
                             <span class="text-[10px] mono uppercase tracking-widest font-bold text-white/60">Visualization Layer</span>
                         </div>
                         <div class="grid grid-cols-1 gap-2">
@@ -246,7 +277,12 @@
                     <div class="space-y-4">
                         <button id="color-science-toggle" class="flex items-center justify-between w-full group">
                             <div class="flex items-center gap-2">
-                                <span class="text-pink-500">🎨</span>
+                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
+                                    <circle cx="6" cy="6" r="1"></circle>
+                                    <circle cx="10" cy="5" r="1"></circle>
+                                    <circle cx="11" cy="9" r="1"></circle>
+                                    <path d="M8 2a6 6 0 100 12h1.5a1.5 1.5 0 000-3H8.8a1.3 1.3 0 010-2.6H11A3 3 0 0011 2H8z"></path>
+                                </svg>
                                 <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Color Science</span>
                             </div>
                             <div id="color-science-indicator" class="w-2 h-2 rounded-full bg-pink-900 scale-75"></div>
@@ -333,4 +369,3 @@
     <script type="module" src="ui.js"></script>
 </body>
 </html>
-
