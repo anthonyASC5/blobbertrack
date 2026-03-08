@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blob Machine - Test Place</title>
+    <script src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans overflow-hidden">
+    <!-- Top Bar -->
+    <header class="h-14 border-b border-slate-700 flex items-center justify-between px-6 shrink-0 bg-slate-800 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-5 h-5 bg-emerald-600 rounded-sm flex items-center justify-center">
+                <span class="text-white text-xs">🧪</span>
+            </div>
+            <h1 class="text-sm font-bold tracking-widest uppercase mono text-slate-100">Test Place</h1>
+            <div class="h-4 w-[1px] bg-slate-600 mx-2"></div>
+            <div class="flex gap-4 text-[10px] mono text-slate-400">
+                <span id="fps-display">FPS: 0</span>
+                <span id="blob-count-display">BLOBS: 0</span>
+                <span id="status-display">STATUS: LOADING CV...</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="index.html" class="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-700 hover:bg-slate-600 transition-colors text-[10px] mono uppercase tracking-wider">
+                <span>🏠</span>
+                Back to Main
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden relative">
+        <!-- Left Panel - Experimental Features -->
+        <aside class="w-80 border-r border-slate-700 flex flex-col shrink-0 bg-slate-800 text-slate-100">
+            <div class="p-4 border-b border-slate-600 flex items-center gap-2">
+                <span class="text-emerald-500">🧪</span>
+                <span class="text-[10px] mono uppercase tracking-widest font-bold text-slate-300">Experimental Lab</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                <!-- Glass Mode Toggle -->
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="glass-mode" class="w-4 h-4">
+                        <span class="text-[10px] mono uppercase tracking-widest text-slate-300">Glass Mode</span>
+                    </label>
+                    <p class="text-[8px] mono text-slate-500">Magnifying lens effect on blobs</p>
+                </div>
+
+                <!-- Advanced Filters -->
+                <div class="space-y-4">
+                    <span class="text-[10px] mono uppercase tracking-widest font-bold text-slate-300">Advanced Filters</span>
+                    <div class="control-slider">
+                        <label class="text-[9px] mono uppercase tracking-widest text-slate-400">Noise Reduction</label>
+                        <input type="range" id="noise-slider" min="0" max="10" value="0" class="w-full">
+                    </div>
+                    <div class="control-slider">
+                        <label class="text-[9px] mono uppercase tracking-widest text-slate-400">Edge Enhancement</label>
+                        <input type="range" id="edge-slider" min="0" max="5" value="0" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Debug Info -->
+                <div class="space-y-2">
+                    <span class="text-[10px] mono uppercase tracking-widest font-bold text-slate-300">Debug Info</span>
+                    <div id="debug-info" class="text-[8px] mono text-slate-500 font-mono bg-slate-900 p-2 rounded">
+                        Waiting for video input...
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center - Video Preview -->
+        <section class="flex-1 relative bg-black flex items-center justify-center overflow-hidden group">
+            <div id="upload-zone" class="text-center space-y-4 cursor-pointer hover:bg-slate-800 p-12 rounded-2xl transition-all border border-dashed border-slate-600 group/upload">
+                <div class="w-20 h-20 border border-dashed border-slate-500 rounded-full flex items-center justify-center mx-auto group-hover/upload:border-slate-400 group-hover/upload:scale-110 transition-all">
+                    <span class="text-slate-400 group-hover/upload:text-slate-300 text-2xl">📁</span>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-[12px] mono text-slate-400 uppercase tracking-widest group-hover/upload:text-slate-300">Drop video or click to upload</p>
+                    <p class="text-[9px] mono text-slate-500 uppercase tracking-tighter italic">Supported: MP4, WebM, MOV</p>
+                </div>
+            </div>
+
+            <div id="video-container" class="relative max-w-full max-h-full hidden">
+                <video id="video" class="hidden" loop muted playsinline></video>
+                <canvas id="canvas" class="max-w-full max-h-full opacity-100"></canvas>
+                <canvas id="overlay" class="absolute inset-0 max-w-full max-h-full"></canvas>
+            </div>
+
+            <!-- Start Overlay -->
+            <div id="start-overlay" class="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+                <button id="start-btn" class="relative group flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-full bg-emerald-600/20 blur-2xl group-hover:bg-emerald-500/40 transition-all duration-500"></div>
+                    <div class="relative w-48 h-48 rounded-full bg-gradient-to-b from-emerald-500 via-emerald-600 to-emerald-800 border-4 border-emerald-400/50 shadow-[0_0_50px_rgba(16,185,129,0.5),inset_0_4px_12px_rgba(255,255,255,0.4)] flex flex-col items-center justify-center overflow-hidden group-active:scale-95 transition-transform">
+                        <div class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/30 to-transparent pointer-events-none"></div>
+                        <span class="text-3xl mb-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">▶</span>
+                        <span class="text-[12px] font-black mono text-white uppercase tracking-[0.2em] drop-shadow-md">
+                            Start<br/>Experiment
+                        </span>
+                        <div class="absolute inset-2 rounded-full border border-emerald-300/20 pointer-events-none"></div>
+                    </div>
+                    <div class="absolute -inset-4 border-2 border-emerald-500/10 rounded-full pointer-events-none group-hover:border-emerald-500/30 transition-colors"></div>
+                    <div class="absolute -inset-8 border border-emerald-500/5 rounded-full pointer-events-none"></div>
+                </button>
+            </div>
+
+            <div class="absolute inset-0 pointer-events-none border-[20px] border-black/50"></div>
+            <div id="viewport-info" class="absolute top-8 left-8 text-[10px] mono text-slate-400 uppercase tracking-widest">
+                Test_Viewport // 0x0
+            </div>
+        </section>
+
+        <!-- Right Panel - Controls -->
+        <aside class="w-80 border-l border-slate-700 flex flex-col bg-slate-800 text-slate-100">
+            <div class="p-4 border-b border-slate-600 flex items-center gap-2">
+                <span class="text-slate-400">⚙</span>
+                <span class="text-[10px] mono uppercase tracking-widest font-bold text-slate-300">Test Controls</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                <!-- Basic Controls -->
+                <div class="space-y-4">
+                    <div class="control-slider">
+                        <label class="text-[9px] mono uppercase tracking-widest text-slate-400">Threshold</label>
+                        <input type="range" id="threshold-slider" min="0" max="255" value="50" class="w-full">
+                    </div>
+                    <div class="control-slider">
+                        <label class="text-[9px] mono uppercase tracking-widest text-slate-400">Min Size</label>
+                        <input type="range" id="min-size-slider" min="1" max="100" value="10" class="w-full">
+                    </div>
+                    <div class="control-slider">
+                        <label class="text-[9px] mono uppercase tracking-widest text-slate-400">Sensitivity</label>
+                        <input type="range" id="sensitivity-slider" min="1" max="200" value="50" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Visualization -->
+                <div class="space-y-4">
+                    <span class="text-[10px] mono uppercase tracking-widest font-bold text-slate-300">Visualization</span>
+                    <div class="grid grid-cols-1 gap-2">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="show-boxes" checked>
+                            <span class="toggle-text">Bounding Boxes</span>
+                        </label>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="show-centers" checked>
+                            <span class="toggle-text">Blob Centers</span>
+                        </label>
+                        <label class="toggle-label">
+                            <input type="checkbox" id="show-trails">
+                            <span class="toggle-text">Motion Trails</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Color Controls -->
+                <div class="space-y-4">
+                    <span class="text-[10px] mono uppercase tracking-widest font-bold text-slate-300">Colors</span>
+                    <div class="control-slider">
+                        <label class="text-[9px] mono uppercase tracking-widest text-slate-400">Trail Hue</label>
+                        <input type="range" id="trail-hue-slider" min="0" max="360" value="120" class="w-full">
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="color-btn" data-color="#00ff00" style="background-color: #00ff00"></button>
+                        <button class="color-btn" data-color="#ff00ff" style="background-color: #ff00ff"></button>
+                        <button class="color-btn" data-color="#00ffff" style="background-color: #00ffff"></button>
+                        <button class="color-btn" data-color="#ffff00" style="background-color: #ffff00"></button>
+                        <button class="color-btn" data-color="#ff0000" style="background-color: #ff0000"></button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script type="module" src="testplace.js"></script>
+</body>
+</html>

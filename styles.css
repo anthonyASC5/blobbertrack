@@ -1,0 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* Custom scrollbar for technical look */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Segoe UI', monospace;
+}
+
+.control-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.control-slider.dark label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.control-slider.dark input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+}
+
+.control-slider.dark input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.control-slider.dark input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  border: none;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.toggle-label input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-text {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.2s;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-text {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.color-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-btn:hover {
+  transform: scale(1.1);
+}
+
+.color-btn.active {
+  border-color: white;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* Hide HUD content when collapsed */
+#hud-panel.collapsed #hud-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Video editor toggle */
+#editor-panel.hidden {
+  width: 0;
+}
+
+/* Blob list items */
+.blob-item {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background-color 0.2s;
+}
+
+.blob-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.blob-id {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: white;
+  font-weight: bold;
+}
+
+.blob-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.blob-data {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 8px;
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.blob-data span:nth-child(odd) {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.blob-data span:nth-child(even) {
+  text-align: right;
+  color: white;
+}
