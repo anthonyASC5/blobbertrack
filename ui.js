@@ -3,18 +3,26 @@ import { BlobTracker } from './blobtracker.js';
 // Global variables
 let blobTracker;
 let videoSrc = null;
-let isMuted = false;
-
+let reverseTimer = null;
 const ICONS = {
   play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z"></path></svg>',
   pause: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9"></path></svg>',
   gear: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.5"></circle><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M12.8 3.2l-1.4 1.4M4.6 11.4l-1.4 1.4"></path></svg>',
   chevronRight: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"></path></svg>',
-  speaker: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h3l3-2.5v9L5.5 10h-3z"></path><path d="M10.5 6a2.5 2.5 0 010 4"></path><path d="M12 4.5a4.5 4.5 0 010 7"></path></svg>',
-  muted: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6h3l3-2.5v9L5.5 10h-3z"></path><path d="M10.5 6l3 4M13.5 6l-3 4"></path></svg>',
   camera: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="8" height="8" rx="1.5"></rect><path d="M10.5 7l3-1.5v5l-3-1.5z"></path></svg>',
+  chevronDown: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6L8 10.5 12.5 6"></path></svg>',
   stop: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7"></rect></svg>'
 };
+const MORE_FILTER_IDS = [
+  'edge-detect-slider',
+  'scanline-thickness-slider',
+  'gamma-slider',
+  'sepia-slider',
+  'rgb-shift-r-slider',
+  'rgb-shift-g-slider',
+  'rgb-shift-b-slider',
+  'scanline-intensity-slider'
+];
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,24 +56,24 @@ function setupEventListeners() {
   // Play/pause controls
   document.getElementById('play-btn').addEventListener('click', togglePlay);
   document.getElementById('start-btn').addEventListener('click', startTracking);
+  document.getElementById('player-toggle-btn').addEventListener('click', togglePlay);
+  document.getElementById('player-reverse-btn').addEventListener('click', toggleReversePlayback);
 
-  // HUD controls
-  document.getElementById('toggle-hud').addEventListener('click', toggleHUD);
+  // Module controls
   document.getElementById('video-editor-toggle').addEventListener('click', toggleVideoEditor);
+  document.getElementById('matte-blob-toggle').addEventListener('click', toggleMatteBlobPanel);
+  document.getElementById('blob-params-toggle').addEventListener('click', toggleBlobParamsPanel);
 
   // Video editor
-  document.getElementById('grain-slider').addEventListener('input', updateVideoFilters);
-  document.getElementById('bit-crush-slider').addEventListener('input', updateVideoFilters);
+  document.getElementById('sharpen-slider').addEventListener('input', updateVideoFilters);
   document.getElementById('brightness-slider').addEventListener('input', updateVideoFilters);
   document.getElementById('contrast-slider').addEventListener('input', updateVideoFilters);
   document.getElementById('saturation-slider').addEventListener('input', updateVideoFilters);
+  MORE_FILTER_IDS.forEach(id => document.getElementById(id).addEventListener('input', updateVideoFilters));
   document.getElementById('reset-video-filters').addEventListener('click', resetVideoFilters);
 
   // Detection controls
-  document.getElementById('threshold-slider').addEventListener('input', updateConfig);
   document.getElementById('blur-slider').addEventListener('input', updateConfig);
-  document.getElementById('threshold-mode').addEventListener('click', () => setMode('threshold'));
-  document.getElementById('difference-mode').addEventListener('click', () => setMode('differencing'));
 
   // Tracking controls
   document.getElementById('min-size-slider').addEventListener('input', updateConfig);
@@ -78,11 +86,28 @@ function setupEventListeners() {
   document.getElementById('show-trails').addEventListener('change', updateConfig);
   document.getElementById('show-mesh').addEventListener('change', updateConfig);
   document.getElementById('show-coords').addEventListener('change', updateConfig);
+  document.getElementById('show-matte-blob').addEventListener('change', () => {
+    syncMatteBlobControls();
+    updateConfig();
+  });
+  document.getElementById('matte-adaptive').addEventListener('change', updateConfig);
+  document.getElementById('matte-density-slider').addEventListener('input', updateConfig);
+  document.getElementById('matte-radius-slider').addEventListener('input', updateConfig);
+  document.getElementById('matte-size-slider').addEventListener('input', updateConfig);
+  document.getElementById('matte-vertical-slider').addEventListener('input', updateConfig);
+  document.getElementById('matte-persistence-slider').addEventListener('input', updateConfig);
+  document.getElementById('matte-coverage-slider').addEventListener('input', updateConfig);
+
+  // More tab
+  document.getElementById('more-tab-toggle').addEventListener('click', toggleMoreTab);
 
   // Color science
   document.getElementById('color-science-toggle').addEventListener('click', toggleColorScience);
   document.getElementById('trail-hue-slider').addEventListener('input', updateConfig);
   document.getElementById('line-thickness-slider').addEventListener('input', updateConfig);
+  document.getElementById('fx-negative').addEventListener('change', updateConfig);
+  document.getElementById('fx-blur').addEventListener('change', updateConfig);
+  document.getElementById('fx-glow').addEventListener('change', updateConfig);
 
   // Color buttons
   document.querySelectorAll('.color-btn').forEach(btn => {
@@ -91,12 +116,14 @@ function setupEventListeners() {
       setBlobColor(color);
     });
   });
+  document.querySelectorAll('.line-color-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const color = e.target.dataset.lineColor;
+      setLineColor(color);
+    });
+  });
 
-  // Audio controls
-  document.getElementById('mute-btn').addEventListener('click', toggleMute);
-
-  // Export and record
-  document.getElementById('export-btn').addEventListener('click', () => blobTracker.exportData());
+  // Record
   document.getElementById('record-btn').addEventListener('click', toggleRecording);
 
   // Info modal
@@ -118,6 +145,9 @@ function setupEventListeners() {
   // Mobile panel toggles
   document.getElementById('mobile-inspector-toggle').addEventListener('click', toggleInspector);
   document.getElementById('mobile-hud-toggle').addEventListener('click', toggleHUDMobile);
+
+  // Global keyboard controls
+  document.addEventListener('keydown', handleGlobalKeydown);
 }
 
 // Event handlers
@@ -140,16 +170,18 @@ function handleDrop(e) {
 }
 
 function loadVideo(url) {
+  stopReversePlayback();
   videoSrc = url;
   const video = document.getElementById('video');
   video.src = url;
+  video.muted = false;
   document.getElementById('upload-zone').classList.add('hidden');
   document.getElementById('video-container').classList.remove('hidden');
   document.getElementById('start-overlay').classList.remove('hidden');
   blobTracker.processingRef.nextId = 1;
   blobTracker.processingRef.activeBlobs = [];
   blobTracker.processingRef.frameCount = 0;
-  blobTracker.processingRef.exportData = [];
+  blobTracker.clearHiddenBlobs();
   updateViewportInfo();
 }
 
@@ -161,6 +193,7 @@ function startTracking() {
 
 function togglePlay() {
   if (!videoSrc) return;
+  stopReversePlayback();
 
   if (blobTracker.isPlaying) {
     blobTracker.stopTracking();
@@ -172,15 +205,31 @@ function togglePlay() {
   }
 }
 
-function toggleHUD() {
-  const hudPanel = document.getElementById('hud-panel');
-  const isCollapsed = hudPanel.classList.contains('collapsed');
-  if (isCollapsed) {
-    hudPanel.classList.remove('collapsed');
-    document.getElementById('hud-toggle-icon').innerHTML = ICONS.gear;
-  } else {
-    hudPanel.classList.add('collapsed');
-    document.getElementById('hud-toggle-icon').innerHTML = ICONS.chevronRight;
+function toggleReversePlayback() {
+  const video = document.getElementById('video');
+  if (!videoSrc || !video.duration) return;
+
+  if (reverseTimer) {
+    stopReversePlayback();
+    return;
+  }
+
+  blobTracker.stopTracking();
+  setPlayButtonState(false);
+  reverseTimer = window.setInterval(() => {
+    if (video.currentTime <= 0.05) {
+      stopReversePlayback();
+      return;
+    }
+    video.currentTime = Math.max(0, video.currentTime - (1 / 30));
+    blobTracker.renderStillFrame();
+  }, 33);
+}
+
+function stopReversePlayback() {
+  if (reverseTimer) {
+    window.clearInterval(reverseTimer);
+    reverseTimer = null;
   }
 }
 
@@ -189,10 +238,10 @@ function toggleVideoEditor() {
   const isCollapsed = videoEditorPanel.classList.contains('collapsed');
   if (isCollapsed) {
     videoEditorPanel.classList.remove('collapsed');
-    document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
+    document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronDown;
   } else {
     videoEditorPanel.classList.add('collapsed');
-    document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.gear;
+    document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
   }
 }
 
@@ -208,27 +257,42 @@ function toggleHUDMobile() {
 
 function updateVideoFilters() {
   const filters = {
-    grain: parseInt(document.getElementById('grain-slider').value),
-    bitCrush: parseInt(document.getElementById('bit-crush-slider').value),
+    sharpness: parseInt(document.getElementById('sharpen-slider').value) / 100,
     brightness: parseInt(document.getElementById('brightness-slider').value),
     contrast: parseInt(document.getElementById('contrast-slider').value) / 100,
-    saturation: parseInt(document.getElementById('saturation-slider').value) / 100
+    saturation: parseInt(document.getElementById('saturation-slider').value) / 100,
+    edgeDetect: parseInt(document.getElementById('edge-detect-slider').value) / 100,
+    scanlineThickness: parseInt(document.getElementById('scanline-thickness-slider').value),
+    gamma: parseInt(document.getElementById('gamma-slider').value) / 100,
+    sepia: parseInt(document.getElementById('sepia-slider').value) / 100,
+    rgbShift: {
+      r: parseInt(document.getElementById('rgb-shift-r-slider').value),
+      g: parseInt(document.getElementById('rgb-shift-g-slider').value),
+      b: parseInt(document.getElementById('rgb-shift-b-slider').value)
+    },
+    scanlineIntensity: parseInt(document.getElementById('scanline-intensity-slider').value) / 100
   };
   blobTracker.updateVideoFilters(filters);
 }
 
 function resetVideoFilters() {
-  document.getElementById('grain-slider').value = 0;
-  document.getElementById('bit-crush-slider').value = 16;
+  document.getElementById('sharpen-slider').value = 0;
   document.getElementById('brightness-slider').value = 0;
   document.getElementById('contrast-slider').value = 100;
   document.getElementById('saturation-slider').value = 100;
+  document.getElementById('edge-detect-slider').value = 0;
+  document.getElementById('scanline-thickness-slider').value = 0;
+  document.getElementById('gamma-slider').value = 100;
+  document.getElementById('sepia-slider').value = 0;
+  document.getElementById('rgb-shift-r-slider').value = 0;
+  document.getElementById('rgb-shift-g-slider').value = 0;
+  document.getElementById('rgb-shift-b-slider').value = 0;
+  document.getElementById('scanline-intensity-slider').value = 30;
   updateVideoFilters();
 }
 
 function updateConfig() {
   const config = {
-    threshold: parseInt(document.getElementById('threshold-slider').value),
     blur: parseInt(document.getElementById('blur-slider').value),
     minSize: parseInt(document.getElementById('min-size-slider').value),
     maxSize: parseInt(document.getElementById('max-size-slider').value),
@@ -238,18 +302,22 @@ function updateConfig() {
     showTrails: document.getElementById('show-trails').checked,
     showMesh: document.getElementById('show-mesh').checked,
     showCoords: document.getElementById('show-coords').checked,
+    fxNegative: document.getElementById('fx-negative').checked,
+    fxBlur: document.getElementById('fx-blur').checked,
+    fxGlow: document.getElementById('fx-glow').checked,
+    showMatteBlob: document.getElementById('show-matte-blob').checked,
+    matteAdaptive: document.getElementById('matte-adaptive').checked,
+    matteDensity: parseInt(document.getElementById('matte-density-slider').value),
+    matteRadius: parseInt(document.getElementById('matte-radius-slider').value),
+    matteTileScale: parseInt(document.getElementById('matte-size-slider').value) / 100,
+    matteVerticalSpread: parseInt(document.getElementById('matte-vertical-slider').value) / 100,
+    mattePersistence: parseInt(document.getElementById('matte-persistence-slider').value),
+    matteCoverageMin: parseInt(document.getElementById('matte-coverage-slider').value) / 100,
     trailHue: parseInt(document.getElementById('trail-hue-slider').value),
-    lineThickness: parseInt(document.getElementById('line-thickness-slider').value)
+    lineThickness: parseInt(document.getElementById('line-thickness-slider').value),
+    lineColor: blobTracker.config.lineColor || '#ef4444'
   };
   blobTracker.updateConfig(config);
-}
-
-function setMode(mode) {
-  blobTracker.updateConfig({ mode });
-  document.getElementById('threshold-mode').classList.toggle('bg-white', mode === 'threshold');
-  document.getElementById('threshold-mode').classList.toggle('text-black', mode === 'threshold');
-  document.getElementById('difference-mode').classList.toggle('bg-white', mode === 'differencing');
-  document.getElementById('difference-mode').classList.toggle('text-black', mode === 'differencing');
 }
 
 function toggleColorScience() {
@@ -268,6 +336,46 @@ function toggleColorScience() {
   }
 }
 
+function toggleMatteBlobPanel() {
+  const panel = document.getElementById('matte-blob-panel');
+  const indicator = document.getElementById('matte-blob-indicator');
+  if (panel.classList.contains('hidden')) {
+    panel.classList.remove('hidden');
+    indicator.classList.remove('scale-75');
+    indicator.classList.add('scale-125');
+    indicator.classList.replace('bg-pink-900', 'bg-pink-500');
+  } else {
+    panel.classList.add('hidden');
+    indicator.classList.add('scale-75');
+    indicator.classList.remove('scale-125');
+    indicator.classList.replace('bg-pink-500', 'bg-pink-900');
+  }
+}
+
+function toggleMoreTab() {
+  const panel = document.getElementById('more-tab-content');
+  const icon = document.getElementById('more-tab-toggle-icon');
+  panel.classList.toggle('hidden');
+  icon.innerHTML = panel.classList.contains('hidden') ? ICONS.chevronRight : ICONS.chevronDown;
+}
+
+function toggleBlobParamsPanel() {
+  const panel = document.getElementById('blob-params-panel');
+  const icon = document.getElementById('blob-params-toggle-icon');
+  panel.classList.toggle('hidden');
+  icon.innerHTML = panel.classList.contains('hidden') ? ICONS.chevronRight : ICONS.chevronDown;
+}
+
+function syncMatteBlobControls() {
+  const enabled = document.getElementById('show-matte-blob').checked;
+  const controls = document.querySelectorAll('#matte-blob-panel input[type="range"], #matte-blob-panel input[type="checkbox"]:not(#show-matte-blob)');
+  controls.forEach(control => {
+    control.disabled = !enabled;
+    control.closest('.control-slider')?.classList.toggle('opacity-40', !enabled);
+    control.closest('.toggle-label')?.classList.toggle('opacity-40', !enabled);
+  });
+}
+
 function setBlobColor(color) {
   document.querySelectorAll('.color-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -276,11 +384,10 @@ function setBlobColor(color) {
   blobTracker.updateConfig({ blobColor: color });
 }
 
-function toggleMute() {
-  const video = document.getElementById('video');
-  isMuted = !isMuted;
-  video.muted = isMuted;
-  document.getElementById('mute-icon').innerHTML = isMuted ? ICONS.muted : ICONS.speaker;
+function setLineColor(color) {
+  document.querySelectorAll('.line-color-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.line-color-btn[data-line-color="${color}"]`)?.classList.add('active');
+  blobTracker.updateConfig({ lineColor: color });
 }
 
 function toggleRecording() {
@@ -300,10 +407,23 @@ function setPlayButtonState(isPlaying) {
 
 function initializeIcons() {
   setPlayButtonState(false);
-  document.getElementById('hud-toggle-icon').innerHTML = ICONS.gear;
   document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
-  document.getElementById('mute-icon').innerHTML = ICONS.speaker;
+  document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;
+  document.getElementById('blob-params-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('record-icon').innerHTML = ICONS.camera;
+  setBlobColor('#ef4444');
+  setLineColor('#ef4444');
+  syncMatteBlobControls();
+  updateVideoFilters();
+  updateConfig();
+}
+
+function handleGlobalKeydown(e) {
+  if (e.code !== 'Space') return;
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  e.preventDefault();
+  togglePlay();
 }
 
 function updateViewportInfo() {
