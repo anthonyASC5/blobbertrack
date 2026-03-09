@@ -51,16 +51,15 @@ function setupEventListeners() {
 
   // HUD controls
   document.getElementById('toggle-hud').addEventListener('click', toggleHUD);
-  document.getElementById('close-editor').addEventListener('click', () => {
-    document.getElementById('editor-panel').classList.add('hidden');
-  });
+  document.getElementById('video-editor-toggle').addEventListener('click', toggleVideoEditor);
 
   // Video editor
-  document.getElementById('brightness-slider').addEventListener('input', updateFilters);
-  document.getElementById('contrast-slider').addEventListener('input', updateFilters);
-  document.getElementById('saturation-slider').addEventListener('input', updateFilters);
-  document.getElementById('sharpness-slider').addEventListener('input', updateFilters);
-  document.getElementById('reset-filters').addEventListener('click', resetFilters);
+  document.getElementById('grain-slider').addEventListener('input', updateVideoFilters);
+  document.getElementById('bit-crush-slider').addEventListener('input', updateVideoFilters);
+  document.getElementById('brightness-slider').addEventListener('input', updateVideoFilters);
+  document.getElementById('contrast-slider').addEventListener('input', updateVideoFilters);
+  document.getElementById('saturation-slider').addEventListener('input', updateVideoFilters);
+  document.getElementById('reset-video-filters').addEventListener('click', resetVideoFilters);
 
   // Detection controls
   document.getElementById('threshold-slider').addEventListener('input', updateConfig);
@@ -185,6 +184,18 @@ function toggleHUD() {
   }
 }
 
+function toggleVideoEditor() {
+  const videoEditorPanel = document.getElementById('video-editor-panel');
+  const isCollapsed = videoEditorPanel.classList.contains('collapsed');
+  if (isCollapsed) {
+    videoEditorPanel.classList.remove('collapsed');
+    document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
+  } else {
+    videoEditorPanel.classList.add('collapsed');
+    document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.gear;
+  }
+}
+
 function toggleInspector() {
   const panel = document.querySelector('.inspector-panel');
   panel.classList.toggle('inspector-visible');
@@ -195,22 +206,24 @@ function toggleHUDMobile() {
   panel.classList.toggle('hud-visible');
 }
 
-function updateFilters() {
+function updateVideoFilters() {
   const filters = {
+    grain: parseInt(document.getElementById('grain-slider').value),
+    bitCrush: parseInt(document.getElementById('bit-crush-slider').value),
     brightness: parseInt(document.getElementById('brightness-slider').value),
     contrast: parseInt(document.getElementById('contrast-slider').value) / 100,
-    saturation: parseInt(document.getElementById('saturation-slider').value) / 100,
-    sharpness: parseInt(document.getElementById('sharpness-slider').value) / 10
+    saturation: parseInt(document.getElementById('saturation-slider').value) / 100
   };
-  blobTracker.updateFilters(filters);
+  blobTracker.updateVideoFilters(filters);
 }
 
-function resetFilters() {
+function resetVideoFilters() {
+  document.getElementById('grain-slider').value = 0;
+  document.getElementById('bit-crush-slider').value = 16;
   document.getElementById('brightness-slider').value = 0;
   document.getElementById('contrast-slider').value = 100;
   document.getElementById('saturation-slider').value = 100;
-  document.getElementById('sharpness-slider').value = 0;
-  updateFilters();
+  updateVideoFilters();
 }
 
 function updateConfig() {
@@ -288,6 +301,7 @@ function setPlayButtonState(isPlaying) {
 function initializeIcons() {
   setPlayButtonState(false);
   document.getElementById('hud-toggle-icon').innerHTML = ICONS.gear;
+  document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('mute-icon').innerHTML = ICONS.speaker;
   document.getElementById('record-icon').innerHTML = ICONS.camera;
 }

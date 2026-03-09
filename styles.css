@@ -26,12 +26,13 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 18rem minmax(0, 1fr) 20rem;
+  grid-template-columns: 18rem minmax(0, 1fr) 20rem 20rem;
   overflow: hidden;
 }
 
 #right-column {
-  width: 20rem;
+  width: 40rem;
+  display: flex;
 }
 
 #test-shell {
@@ -85,7 +86,7 @@ body {
 
 @media (max-width: 1100px) {
   #app-main {
-    grid-template-columns: 14rem minmax(0, 1fr) 18rem;
+    grid-template-columns: 14rem minmax(0, 1fr) 18rem 18rem;
   }
 }
 
@@ -296,6 +297,19 @@ body {
 #hud-panel.collapsed #hud-content {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Video Editor Panel collapsible */
+#video-editor-panel.collapsed #video-editor-content {
+  opacity: 0;
+  pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+}
+
+#video-editor-panel.collapsed {
+  width: 48px;
+  min-width: 48px;
 }
 
 /* Video editor toggle */

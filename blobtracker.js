@@ -39,6 +39,13 @@ class BlobTracker {
       saturation: 1,
       sharpness: 0
     };
+    this.videoFilters = {
+      grain: 0,
+      bitCrush: 16,
+      brightness: 0,
+      contrast: 1,
+      saturation: 1
+    };
     this.videoElement = null;
     this.canvasElement = null;
     this.overlayElement = null;
@@ -67,6 +74,10 @@ class BlobTracker {
 
   updateFilters(newFilters) {
     this.filters = { ...this.filters, ...newFilters };
+  }
+
+  updateVideoFilters(newFilters) {
+    this.videoFilters = { ...this.videoFilters, ...newFilters };
   }
 
   startTracking() {
@@ -107,15 +118,17 @@ class BlobTracker {
     const src = cv.imread(canvas);
 
     // --- Video Editor Filters ---
-    src.convertTo(src, -1, this.filters.contrast, this.filters.brightness);
+    // Apply brightness and contrast
+    src.convertTo(src, -1, this.videoFilters.contrast, this.videoFilters.brightness);
 
-    if (this.filters.saturation !== 1) {
+    // Apply saturation
+    if (this.videoFilters.saturation !== 1) {
       const hsv = new cv.Mat();
       cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV);
       const channels = new cv.MatVector();
       cv.split(hsv, channels);
       const s = channels.get(1);
-      s.convertTo(s, -1, this.filters.saturation, 0);
+      s.convertTo(s, -1, this.videoFilters.saturation, 0);
       cv.merge(channels, hsv);
       cv.cvtColor(hsv, src, cv.COLOR_HSV2RGB);
       hsv.delete();
@@ -123,12 +136,20 @@ class BlobTracker {
       s.delete();
     }
 
-    if (this.filters.sharpness > 0) {
-      const blurred = new cv.Mat();
-      const ksize = new cv.Size(0, 0);
-      cv.GaussianBlur(src, blurred, ksize, 3);
-      cv.addWeighted(src, 1 + this.filters.sharpness, blurred, -this.filters.sharpness, 0, src);
-      blurred.delete();
+    // Apply bit crush (reduce color precision)
+    if (this.videoFilters.bitCrush < 16) {
+      const factor = Math.pow(2, this.videoFilters.bitCrush);
+      src.convertTo(src, -1, 1, 0);
+      src.convertTo(src, -1, factor / 255, 0);
+      src.convertTo(src, cv.CV_8U, 255 / factor, 0);
+    }
+
+    // Apply grain (add noise)
+    if (this.videoFilters.grain > 0) {
+      const noise = new cv.Mat(src.rows, src.cols, src.type());
+      cv.randn(noise, 0, this.videoFilters.grain);
+      cv.add(src, noise, src);
+      noise.delete();
     }
 
     cv.imshow(canvas, src);
