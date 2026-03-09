@@ -1,5 +1,6 @@
+import { VHSEngine } from './VHS.js';
+
 const MAX_TRAIL_LENGTH = 20;
-const MESH_DISTANCE_THRESHOLD = 150;
 
 class BlobTracker {
   constructor() {
@@ -12,7 +13,11 @@ class BlobTracker {
       matteTiles: [],
       recordedChunks: [],
       mediaRecorder: null,
-      frameCount: 0
+      frameCount: 0,
+      prevFxImageData: null,
+      feedbackFrame: null,
+      echoHistory: [],
+      slitScanBuffer: null
     };
     this.requestRef = null;
     this.isPlaying = false;
@@ -25,29 +30,23 @@ class BlobTracker {
       showBoxes: true,
       showCenters: true,
       showTrails: true,
-      showMesh: true,
-      showCoords: false,
+      showCoords: true,
       fxNegative: false,
       fxBlur: false,
-      fxGlow: false,
       showMatteBlob: false,
+      matteVideoOpacity: 0.35,
       matteAdaptive: true,
-      matteDensity: 5,
-      matteRadius: 60,
-      matteTileScale: 1.3,
-      matteVerticalSpread: 0.7,
-      mattePersistence: 10,
-      matteCoverageMin: 0.15,
-      blobColor: '#ef4444',
-      lineColor: '#ef4444',
+      matteGenerationSlowdown: 3,
+      matteDensity: 7,
+      matteRadius: 92,
+      matteTileScale: 1.05,
+      matteVerticalSpread: 0.8,
+      mattePersistence: 14,
+      matteCoverageMin: 0.28,
+      blobColor: '#ffffff',
+      lineColor: '#ffffff',
       trailHue: 0,
       lineThickness: 1
-    };
-    this.filters = {
-      brightness: 0,
-      contrast: 1,
-      saturation: 1,
-      sharpness: 0
     };
     this.videoFilters = {
       sharpness: 0,
@@ -57,7 +56,34 @@ class BlobTracker {
       edgeDetect: 0,
       scanlineThickness: 0,
       gamma: 1,
-      sepia: 0,
+      slitScanWidth: 2,
+      slitScanSpeed: 0,
+      moshIntensity: 0,
+      moshPersistence: 0.8,
+      warpStrength: 0,
+      warpScale: 0.01,
+      warpSpeed: 0.3,
+      heatAmplitude: 0,
+      heatFrequency: 0.03,
+      heatSpeed: 2,
+      echoFrames: 1,
+      echoDecay: 0.7,
+      pixelSortThreshold: 0,
+      scanCollapseStrength: 0,
+      blockSize: 20,
+      shuffleAmount: 0,
+      crtWarp: 0,
+      crtScanlines: 0,
+      crtGlow: 0,
+      temporalNoise: 0,
+      frameMix: 0,
+      motionSmear: 0,
+      feedbackScale: 0.98,
+      feedbackOpacity: 0,
+      edgeGlow: 0,
+      edgeThreshold: 50,
+      noiseDisplace: 0,
+      noiseSpeed: 1,
       rgbShift: { r: 0, g: 0, b: 0 },
       scanlineIntensity: 0.3
     };
@@ -72,6 +98,7 @@ class BlobTracker {
     this.audioSource = null;
     this.audioLevel = 0;
     this.fxCanvas = null;
+    this.vhsEngine = new VHSEngine(this.processingRef);
   }
 
   init(videoId, canvasId, overlayId, gooCanvasId) {
@@ -90,12 +117,22 @@ class BlobTracker {
     }, 100);
   }
 
-  updateConfig(newConfig) {
-    this.config = { ...this.config, ...newConfig };
+  getRenderDimensions() {
+    if (!this.videoElement) return null;
+    const vw = this.videoElement.videoWidth || 0;
+    const vh = this.videoElement.videoHeight || 0;
+    if (!vw || !vh) return null;
+    const maxWidth = 1920;
+    const maxHeight = 1080;
+    const scale = Math.min(1, maxWidth / vw, maxHeight / vh);
+    return {
+      width: Math.max(1, Math.round(vw * scale)),
+      height: Math.max(1, Math.round(vh * scale))
+    };
   }
 
-  updateFilters(newFilters) {
-    this.filters = { ...this.filters, ...newFilters };
+  updateConfig(newConfig) {
+    this.config = { ...this.config, ...newConfig };
   }
 
   updateVideoFilters(newFilters) {
@@ -129,11 +166,13 @@ class BlobTracker {
     const ctx = canvas.getContext('2d');
     const oCtx = overlay.getContext('2d');
     if (!ctx || !oCtx || !video.videoWidth) return;
-    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      overlay.width = video.videoWidth;
-      overlay.height = video.videoHeight;
+    const dims = this.getRenderDimensions();
+    if (!dims) return;
+    if (canvas.width !== dims.width || canvas.height !== dims.height) {
+      canvas.width = dims.width;
+      canvas.height = dims.height;
+      overlay.width = dims.width;
+      overlay.height = dims.height;
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     oCtx.clearRect(0, 0, overlay.width, overlay.height);
@@ -152,11 +191,13 @@ class BlobTracker {
     this.updateAudioLevel();
 
     // Match canvas size to video
-    if (canvas.width !== video.videoWidth) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      overlay.width = video.videoWidth;
-      overlay.height = video.videoHeight;
+    const dims = this.getRenderDimensions();
+    if (!dims) return;
+    if (canvas.width !== dims.width || canvas.height !== dims.height) {
+      canvas.width = dims.width;
+      canvas.height = dims.height;
+      overlay.width = dims.width;
+      overlay.height = dims.height;
     }
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -287,7 +328,7 @@ class BlobTracker {
 
     cv.imshow(canvas, src);
     this.applyBlobFx(ctx, canvas.width, canvas.height, nextBlobs);
-    this.applyAdvancedVideoEffects(ctx, canvas.width, canvas.height);
+    this.vhsEngine.apply(ctx, canvas.width, canvas.height, this.videoFilters, nextBlobs, this.hiddenBlobIds);
 
     // --- Rendering Overlays ---
     this.renderOverlay(oCtx, nextBlobs, this.config, canvas);
@@ -323,32 +364,27 @@ class BlobTracker {
 
     this.renderBlobCloseControls(config.showBoxes ? visibleBlobs : [], false);
 
-    // Mesh
-    if (config.showMesh) {
-      oCtx.strokeStyle = `${lineColor}66`;
-      oCtx.lineWidth = thickness / 2;
-      for (let i = 0; i < visibleBlobs.length; i++) {
-        for (let j = i + 1; j < visibleBlobs.length; j++) {
-          const dist = Math.hypot(visibleBlobs[i].x - visibleBlobs[j].x, visibleBlobs[i].y - visibleBlobs[j].y);
-          if (dist < MESH_DISTANCE_THRESHOLD) {
-            oCtx.beginPath();
-            oCtx.moveTo(visibleBlobs[i].x, visibleBlobs[i].y);
-            oCtx.lineTo(visibleBlobs[j].x, visibleBlobs[j].y);
-            oCtx.stroke();
+    visibleBlobs.forEach(blob => {
+      // Trails: one straight connection to nearest visible blob.
+      if (config.showTrails && visibleBlobs.length > 1) {
+        let nearest = null;
+        let nearestDist = Infinity;
+        for (const other of visibleBlobs) {
+          if (other.id === blob.id) continue;
+          const dist = Math.hypot(blob.x - other.x, blob.y - other.y);
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearest = other;
           }
         }
-      }
-    }
-
-    visibleBlobs.forEach(blob => {
-      // Trails
-      if (config.showTrails && blob.lastPositions.length > 1) {
-        oCtx.beginPath();
-        oCtx.strokeStyle = config.trailHue !== undefined ? `${lineColor}99` : `${lineColor}99`;
-        oCtx.lineWidth = thickness;
-        oCtx.moveTo(blob.lastPositions[0].x, blob.lastPositions[0].y);
-        blob.lastPositions.forEach(p => oCtx.lineTo(p.x, p.y));
-        oCtx.stroke();
+        if (nearest) {
+          oCtx.beginPath();
+          oCtx.strokeStyle = `${lineColor}99`;
+          oCtx.lineWidth = thickness;
+          oCtx.moveTo(blob.x, blob.y);
+          oCtx.lineTo(nearest.x, nearest.y);
+          oCtx.stroke();
+        }
       }
 
       // Box
@@ -381,6 +417,13 @@ class BlobTracker {
     oCtx.fillRect(0, 0, width, height);
 
     if (!sourceCanvas) return;
+    const videoBehindOpacity = Math.max(0, Math.min(1, this.config.matteVideoOpacity ?? 0));
+    if (videoBehindOpacity > 0) {
+      oCtx.save();
+      oCtx.globalAlpha = videoBehindOpacity;
+      oCtx.drawImage(sourceCanvas, 0, 0, width, height);
+      oCtx.restore();
+    }
 
     const minArea = Math.max(4, this.config.minSize * 0.3);
     const activeBlobs = blobs.filter(blob => blob.area >= minArea);
@@ -394,34 +437,38 @@ class BlobTracker {
     const persistence = this.config.mattePersistence || 10;
     const minCoverage = this.config.matteCoverageMin || 0.15;
     const frameSeed = Math.floor(performance.now() / 100);
+    const generationSlowdown = Math.max(1, this.config.matteGenerationSlowdown || 1);
+    const shouldGenerateTiles = this.processingRef.frameCount % generationSlowdown === 0;
 
-    activeBlobs.forEach(blob => {
-      const tileCount = Math.max(2, Math.round(densityBase + (blob.area / 950)));
-      for (let i = 0; i < tileCount; i++) {
-        const angle = ((blob.id * 13 + i * 47 + frameSeed) % 360) * (Math.PI / 180);
-        const distance = (radius * (0.35 + (i % 7) / 7)) * (0.7 + (blob.area / (this.config.maxSize + 1)));
-        const tileW = Math.max(24, (Math.sqrt(blob.area) * 0.7 + 12) * tileScale);
-        const tileH = Math.max(20, (Math.sqrt(blob.area) * 0.62 + 10) * tileScale);
-        const sx = Math.max(0, Math.min(sourceCanvas.width - tileW, blob.x + Math.cos(angle) * distance * 0.35 - tileW / 2));
-        const sy = Math.max(0, Math.min(sourceCanvas.height - tileH, blob.y + Math.sin(angle) * distance * 0.35 - tileH / 2));
-        const nx = (blob.x / width) - 0.5;
-        const ny = (blob.y / height) - 0.5;
-        const dx = centerX + nx * width * 0.35 + Math.cos(angle) * distance - tileW / 2;
-        const dy = centerY + ny * height * (0.45 * verticalSpread) + Math.sin(angle) * (distance * 0.52) - tileH / 2;
-        frameTiles.push({
-          sx,
-          sy,
-          sw: tileW,
-          sh: tileH,
-          dx: Math.max(0, Math.min(width - tileW, dx)),
-          dy: Math.max(0, Math.min(height - tileH, dy)),
-          dw: tileW,
-          dh: tileH,
-          life: persistence,
-          maxLife: Math.max(1, persistence)
-        });
-      }
-    });
+    if (shouldGenerateTiles) {
+      activeBlobs.forEach(blob => {
+        const tileCount = Math.max(2, Math.round(densityBase + (blob.area / 950)));
+        for (let i = 0; i < tileCount; i++) {
+          const angle = ((blob.id * 13 + i * 47 + frameSeed) % 360) * (Math.PI / 180);
+          const distance = (radius * (0.35 + (i % 7) / 7)) * (0.7 + (blob.area / (this.config.maxSize + 1)));
+          const tileW = Math.max(24, (Math.sqrt(blob.area) * 0.7 + 12) * tileScale);
+          const tileH = Math.max(20, (Math.sqrt(blob.area) * 0.62 + 10) * tileScale);
+          const sx = Math.max(0, Math.min(sourceCanvas.width - tileW, blob.x + Math.cos(angle) * distance * 0.35 - tileW / 2));
+          const sy = Math.max(0, Math.min(sourceCanvas.height - tileH, blob.y + Math.sin(angle) * distance * 0.35 - tileH / 2));
+          const nx = (blob.x / width) - 0.5;
+          const ny = (blob.y / height) - 0.5;
+          const dx = centerX + nx * width * 0.35 + Math.cos(angle) * distance - tileW / 2;
+          const dy = centerY + ny * height * (0.45 * verticalSpread) + Math.sin(angle) * (distance * 0.52) - tileH / 2;
+          frameTiles.push({
+            sx,
+            sy,
+            sw: tileW,
+            sh: tileH,
+            dx: Math.max(0, Math.min(width - tileW, dx)),
+            dy: Math.max(0, Math.min(height - tileH, dy)),
+            dw: tileW,
+            dh: tileH,
+            life: persistence,
+            maxLife: Math.max(1, persistence)
+          });
+        }
+      });
+    }
 
     const persistedTiles = this.processingRef.matteTiles
       .map(tile => ({ ...tile, life: tile.life - 1 }))
@@ -531,6 +578,10 @@ class BlobTracker {
     const controlsLayer = document.getElementById('blob-controls-layer');
     if (controlsLayer) controlsLayer.innerHTML = '';
     this.processingRef.matteTiles = [];
+    this.processingRef.prevFxImageData = null;
+    this.processingRef.feedbackFrame = null;
+    this.processingRef.echoHistory = [];
+    this.processingRef.slitScanBuffer = null;
   }
 
   computeTileCoverage(tiles, width, height) {
@@ -570,7 +621,7 @@ class BlobTracker {
 
   applyBlobFx(ctx, width, height, blobs) {
     const visibleBlobs = blobs.filter(blob => !this.hiddenBlobIds.has(blob.id));
-    if ((!this.config.fxNegative && !this.config.fxBlur && !this.config.fxGlow) || !visibleBlobs.length) return;
+    if ((!this.config.fxNegative && !this.config.fxBlur) || !visibleBlobs.length) return;
 
     if (this.config.fxNegative) {
       const imageData = ctx.getImageData(0, 0, width, height);
@@ -621,111 +672,8 @@ class BlobTracker {
       ctx.restore();
     }
 
-    if (this.config.fxGlow) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      ctx.filter = 'blur(10px) saturate(1.4)';
-      ctx.fillStyle = 'rgba(255, 64, 128, 0.25)';
-      visibleBlobs.forEach(blob => {
-        const x = blob.x - blob.width / 2;
-        const y = blob.y - blob.height / 2;
-        ctx.fillRect(x, y, blob.width, blob.height);
-      });
-      ctx.restore();
-    }
   }
 
-  applyAdvancedVideoEffects(ctx, width, height) {
-    const fx = this.videoFilters;
-    const hasEffect = (
-      fx.edgeDetect > 0 ||
-      fx.scanlineThickness > 0 ||
-      fx.gamma !== 1 ||
-      fx.sepia > 0 ||
-      fx.rgbShift.r !== 0 || fx.rgbShift.g !== 0 || fx.rgbShift.b !== 0
-    );
-    if (!hasEffect) return;
-
-    if (!this.fxCanvas) this.fxCanvas = document.createElement('canvas');
-    if (this.fxCanvas.width !== width || this.fxCanvas.height !== height) {
-      this.fxCanvas.width = width;
-      this.fxCanvas.height = height;
-    }
-    const offCtx = this.fxCanvas.getContext('2d');
-    if (!offCtx) return;
-    offCtx.clearRect(0, 0, width, height);
-    offCtx.drawImage(ctx.canvas, 0, 0);
-
-    let imageData = offCtx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-    const srcCopy = new Uint8ClampedArray(data);
-    const gamma = Math.max(0.01, fx.gamma);
-    const sepia = fx.sepia;
-    const edgeMix = fx.edgeDetect;
-    const shiftR = fx.rgbShift.r | 0;
-    const shiftG = fx.rgbShift.g | 0;
-    const shiftB = fx.rgbShift.b | 0;
-    const scanlineThickness = Math.max(0, fx.scanlineThickness | 0);
-    const scanlineIntensity = fx.scanlineIntensity ?? 0.3;
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const idx = (y * width + x) * 4;
-        let r = srcCopy[idx];
-        let g = srcCopy[idx + 1];
-        let b = srcCopy[idx + 2];
-
-        if (shiftR || shiftG || shiftB) {
-          const xr = Math.max(0, Math.min(width - 1, x + shiftR));
-          const xg = Math.max(0, Math.min(width - 1, x + shiftG));
-          const xb = Math.max(0, Math.min(width - 1, x + shiftB));
-          r = srcCopy[(y * width + xr) * 4];
-          g = srcCopy[(y * width + xg) * 4 + 1];
-          b = srcCopy[(y * width + xb) * 4 + 2];
-        }
-
-        r = 255 * Math.pow(r / 255, 1 / gamma);
-        g = 255 * Math.pow(g / 255, 1 / gamma);
-        b = 255 * Math.pow(b / 255, 1 / gamma);
-
-        if (sepia > 0) {
-          const sr = (r * 0.393) + (g * 0.769) + (b * 0.189);
-          const sg = (r * 0.349) + (g * 0.686) + (b * 0.168);
-          const sb = (r * 0.272) + (g * 0.534) + (b * 0.131);
-          r = (r * (1 - sepia)) + (Math.min(255, sr) * sepia);
-          g = (g * (1 - sepia)) + (Math.min(255, sg) * sepia);
-          b = (b * (1 - sepia)) + (Math.min(255, sb) * sepia);
-        }
-
-        if (scanlineThickness > 0 && (y % (scanlineThickness * 2)) < scanlineThickness) {
-          const dim = 1 - scanlineIntensity;
-          r *= dim; g *= dim; b *= dim;
-        }
-
-        if (edgeMix > 0 && x > 0 && y > 0 && x < width - 1 && y < height - 1) {
-          const iL = (y * width + (x - 1)) * 4;
-          const iR = (y * width + (x + 1)) * 4;
-          const iU = ((y - 1) * width + x) * 4;
-          const iD = ((y + 1) * width + x) * 4;
-          const gx = Math.abs(srcCopy[iR] - srcCopy[iL]);
-          const gy = Math.abs(srcCopy[iD] - srcCopy[iU]);
-          const edge = Math.min(255, gx + gy);
-          r = (r * (1 - edgeMix)) + (edge * edgeMix);
-          g = (g * (1 - edgeMix)) + (edge * edgeMix);
-          b = (b * (1 - edgeMix)) + (edge * edgeMix);
-        }
-
-        data[idx] = r;
-        data[idx + 1] = g;
-        data[idx + 2] = b;
-      }
-    }
-
-    offCtx.putImageData(imageData, 0, 0);
-
-    ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(this.fxCanvas, 0, 0);
-  }
 
   renderGoo() {
     if (!this.gooCanvas) return;
@@ -805,11 +753,14 @@ class BlobTracker {
   startRecording() {
     if (!this.overlayElement || !this.canvasElement) return;
     const recordCanvas = document.createElement('canvas');
-    recordCanvas.width = this.canvasElement.width;
-    recordCanvas.height = this.canvasElement.height;
+    recordCanvas.width = 1280;
+    recordCanvas.height = 720;
     const rCtx = recordCanvas.getContext('2d');
     const stream = recordCanvas.captureStream(30);
-    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    const recorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm',
+      videoBitsPerSecond: 5_000_000
+    });
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) this.processingRef.recordedChunks.push(e.data);
     };
@@ -826,8 +777,9 @@ class BlobTracker {
     recorder.start();
     const drawRecord = () => {
       if (recorder.state === 'recording') {
-        rCtx?.drawImage(this.canvasElement, 0, 0);
-        rCtx?.drawImage(this.overlayElement, 0, 0);
+        rCtx?.clearRect(0, 0, recordCanvas.width, recordCanvas.height);
+        rCtx?.drawImage(this.canvasElement, 0, 0, recordCanvas.width, recordCanvas.height);
+        rCtx?.drawImage(this.overlayElement, 0, 0, recordCanvas.width, recordCanvas.height);
         requestAnimationFrame(drawRecord);
       }
     };
@@ -836,6 +788,117 @@ class BlobTracker {
 
   stopRecording() {
     this.processingRef.mediaRecorder?.stop();
+  }
+
+  async seekVideo(timeInSeconds) {
+    if (!this.videoElement) return;
+    const video = this.videoElement;
+    const safeTime = Math.max(0, Math.min(timeInSeconds, Math.max(0, video.duration || 0)));
+    await new Promise((resolve) => {
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked);
+        resolve();
+      };
+      video.addEventListener('seeked', onSeeked, { once: true });
+      video.currentTime = safeTime;
+    });
+  }
+
+  async exportWebM({
+    totalFrames = 48,
+    width = 1920,
+    height = 1080,
+    fps = 60,
+    videoBitsPerSecond = 12000000,
+    onProgress
+  } = {}) {
+    if (!this.videoElement || !this.canvasElement || !this.overlayElement) {
+      throw new Error('Export unavailable: missing video/canvas elements.');
+    }
+
+    const video = this.videoElement;
+    if (!video.src) {
+      throw new Error('Export unavailable: no loaded video.');
+    }
+
+    if (!video.duration || Number.isNaN(video.duration)) {
+      await new Promise((resolve) => {
+        video.addEventListener('loadedmetadata', () => resolve(), { once: true });
+      });
+    }
+
+    const wasPlaying = this.isPlaying;
+    this.stopTracking();
+    video.pause();
+
+    await this.seekVideo(0);
+    this.processingRef.nextId = 1;
+    this.processingRef.activeBlobs = [];
+    this.processingRef.frameCount = 0;
+    this.clearHiddenBlobs();
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = width;
+    exportCanvas.height = height;
+    const exportCtx = exportCanvas.getContext('2d');
+    if (!exportCtx) {
+      throw new Error('Export unavailable: failed to allocate export canvas.');
+    }
+
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : 'video/webm';
+    const stream = exportCanvas.captureStream(fps);
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond });
+    const chunks = [];
+    recorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) chunks.push(event.data);
+    };
+
+    const done = new Promise((resolve) => {
+      recorder.onstop = () => resolve();
+    });
+
+    recorder.start(100);
+    this.startTracking();
+
+    const waitForRenderedFrame = () => new Promise((resolve) => {
+      if (typeof video.requestVideoFrameCallback === 'function') {
+        video.requestVideoFrameCallback(() => resolve());
+        return;
+      }
+      requestAnimationFrame(() => resolve());
+    });
+
+    let renderedFrames = 0;
+    while (renderedFrames < totalFrames && !video.ended) {
+      // eslint-disable-next-line no-await-in-loop
+      await waitForRenderedFrame();
+      exportCtx.clearRect(0, 0, width, height);
+      exportCtx.drawImage(this.canvasElement, 0, 0, width, height);
+      exportCtx.drawImage(this.overlayElement, 0, 0, width, height);
+      renderedFrames++;
+      onProgress?.({ renderedFrames, totalFrames });
+    }
+
+    if (typeof recorder.requestData === 'function') {
+      recorder.requestData();
+    }
+    await new Promise((resolve) => setTimeout(resolve, Math.max(70, Math.round(2000 / fps))));
+    recorder.stop();
+    await done;
+
+    this.stopTracking();
+    video.pause();
+    await this.seekVideo(0);
+    this.renderStillFrame();
+    if (wasPlaying) this.startTracking();
+
+    if (!chunks.length) {
+      throw new Error('Export produced no chunks.');
+    }
+
+    return new Blob(chunks, { type: mimeType });
   }
 }
 

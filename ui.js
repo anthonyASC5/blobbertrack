@@ -1,13 +1,18 @@
 import { BlobTracker } from './blobtracker.js';
+import { initVHSUI } from './VHS.js';
 
 // Global variables
 let blobTracker;
 let videoSrc = null;
-let reverseTimer = null;
+let isExporting = false;
+let debugLines = [];
+const MOBILE_BREAKPOINT_QUERY = '(max-width: 900px)';
 const ICONS = {
   play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z"></path></svg>',
   pause: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9"></path></svg>',
-  gear: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.5"></circle><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M12.8 3.2l-1.4 1.4M4.6 11.4l-1.4 1.4"></path></svg>',
+  reverse: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3.5L6 8l4.5 4.5M6 3.5L1.5 8 6 12.5"></path></svg>',
+  forward: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5L10 8l-4.5 4.5M10 3.5L14.5 8 10 12.5"></path></svg>',
+  restart: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 7a4.5 4.5 0 1 1 1.2 3.1M3.5 7V3.5M3.5 3.5H7"></path></svg>',
   chevronRight: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"></path></svg>',
   camera: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="8" height="8" rx="1.5"></rect><path d="M10.5 7l3-1.5v5l-3-1.5z"></path></svg>',
   chevronDown: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6L8 10.5 12.5 6"></path></svg>',
@@ -17,7 +22,34 @@ const MORE_FILTER_IDS = [
   'edge-detect-slider',
   'scanline-thickness-slider',
   'gamma-slider',
-  'sepia-slider',
+  'slit-scan-width-slider',
+  'slit-scan-speed-slider',
+  'datamosh-intensity-slider',
+  'datamosh-persistence-slider',
+  'warp-strength-slider',
+  'warp-scale-slider',
+  'warp-speed-slider',
+  'heat-amplitude-slider',
+  'heat-frequency-slider',
+  'heat-speed-slider',
+  'echo-frames-slider',
+  'echo-decay-slider',
+  'pixel-sort-threshold-slider',
+  'scan-collapse-strength-slider',
+  'block-size-slider',
+  'shuffle-amount-slider',
+  'crt-warp-slider',
+  'crt-scanlines-slider',
+  'crt-glow-slider',
+  'temporal-noise-slider',
+  'frame-mix-slider',
+  'motion-smear-slider',
+  'feedback-scale-slider',
+  'feedback-opacity-slider',
+  'edge-glow-slider',
+  'edge-threshold-slider',
+  'noise-displace-slider',
+  'noise-speed-slider',
   'rgb-shift-r-slider',
   'rgb-shift-g-slider',
   'rgb-shift-b-slider',
@@ -28,16 +60,30 @@ const MORE_FILTER_IDS = [
 document.addEventListener('DOMContentLoaded', () => {
   blobTracker = new BlobTracker();
   blobTracker.init('video', 'canvas', 'overlay', 'goo-canvas');
+  mountVHSPanel();
+  logDebug('Blob Tracker initialized.');
 
   initializeIcons();
   setupEventListeners();
+  syncResponsiveLayout();
   updateUI();
 });
+
+function mountVHSPanel() {
+  const slot = document.getElementById('vhs-slot');
+  const machine = document.querySelector('#video-editor-content .dither-machine.more-tab');
+  if (!slot || !machine) return;
+  machine.classList.add('vhs-left-machine');
+  slot.appendChild(machine);
+  initVHSUI();
+}
 
 // Setup all event listeners
 function setupEventListeners() {
   // Video upload
   document.getElementById('video-upload').addEventListener('change', handleFileUpload);
+  document.getElementById('export-webm-btn').addEventListener('click', handleExportWebM);
+  document.getElementById('reset-all-btn').addEventListener('click', resetAllSettings);
   document.getElementById('upload-zone').addEventListener('click', () => {
     document.getElementById('video-upload').click();
   });
@@ -56,8 +102,11 @@ function setupEventListeners() {
   // Play/pause controls
   document.getElementById('play-btn').addEventListener('click', togglePlay);
   document.getElementById('start-btn').addEventListener('click', startTracking);
-  document.getElementById('player-toggle-btn').addEventListener('click', togglePlay);
-  document.getElementById('player-reverse-btn').addEventListener('click', toggleReversePlayback);
+  document.getElementById('nav-play-btn').addEventListener('click', togglePlay);
+  document.getElementById('nav-stop-btn').addEventListener('click', stopPlayback);
+  document.getElementById('nav-reverse-btn').addEventListener('click', reverseStepPlayback);
+  document.getElementById('nav-forward-btn').addEventListener('click', fastForwardPlayback);
+  document.getElementById('nav-restart-btn').addEventListener('click', restartPlayback);
 
   // Module controls
   document.getElementById('video-editor-toggle').addEventListener('click', toggleVideoEditor);
@@ -84,13 +133,14 @@ function setupEventListeners() {
   document.getElementById('show-boxes').addEventListener('change', updateConfig);
   document.getElementById('show-centers').addEventListener('change', updateConfig);
   document.getElementById('show-trails').addEventListener('change', updateConfig);
-  document.getElementById('show-mesh').addEventListener('change', updateConfig);
   document.getElementById('show-coords').addEventListener('change', updateConfig);
   document.getElementById('show-matte-blob').addEventListener('change', () => {
     syncMatteBlobControls();
     updateConfig();
   });
   document.getElementById('matte-adaptive').addEventListener('change', updateConfig);
+  document.getElementById('matte-video-opacity-slider').addEventListener('input', updateConfig);
+  document.getElementById('matte-generation-slider').addEventListener('input', updateConfig);
   document.getElementById('matte-density-slider').addEventListener('input', updateConfig);
   document.getElementById('matte-radius-slider').addEventListener('input', updateConfig);
   document.getElementById('matte-size-slider').addEventListener('input', updateConfig);
@@ -107,7 +157,6 @@ function setupEventListeners() {
   document.getElementById('line-thickness-slider').addEventListener('input', updateConfig);
   document.getElementById('fx-negative').addEventListener('change', updateConfig);
   document.getElementById('fx-blur').addEventListener('change', updateConfig);
-  document.getElementById('fx-glow').addEventListener('change', updateConfig);
 
   // Color buttons
   document.querySelectorAll('.color-btn').forEach(btn => {
@@ -145,6 +194,8 @@ function setupEventListeners() {
   // Mobile panel toggles
   document.getElementById('mobile-inspector-toggle').addEventListener('click', toggleInspector);
   document.getElementById('mobile-hud-toggle').addEventListener('click', toggleHUDMobile);
+  document.getElementById('mobile-hud-drawer-toggle').addEventListener('click', toggleHUDMobile);
+  window.addEventListener('resize', syncResponsiveLayout);
 
   // Global keyboard controls
   document.addEventListener('keydown', handleGlobalKeydown);
@@ -170,7 +221,6 @@ function handleDrop(e) {
 }
 
 function loadVideo(url) {
-  stopReversePlayback();
   videoSrc = url;
   const video = document.getElementById('video');
   video.src = url;
@@ -178,11 +228,99 @@ function loadVideo(url) {
   document.getElementById('upload-zone').classList.add('hidden');
   document.getElementById('video-container').classList.remove('hidden');
   document.getElementById('start-overlay').classList.remove('hidden');
+  updateStartCode();
   blobTracker.processingRef.nextId = 1;
   blobTracker.processingRef.activeBlobs = [];
   blobTracker.processingRef.frameCount = 0;
   blobTracker.clearHiddenBlobs();
   updateViewportInfo();
+  logDebug('Video loaded and export state reset.');
+}
+
+async function handleExportWebM() {
+  if (!videoSrc || isExporting) return;
+  logDebug('Export requested.');
+  runExportDiagnostics();
+  isExporting = true;
+  const exportBtn = document.getElementById('export-webm-btn');
+  const progressShell = document.getElementById('export-progress-shell');
+  const progressBar = document.getElementById('export-progress-bar');
+  const previewTab = window.open('', '_blank');
+  if (previewTab) {
+    previewTab.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Blob Tracker Export</title><style>body{margin:0;display:grid;place-items:center;min-height:100vh;background:#020617;color:#94a3b8;font:12px monospace}</style></head><body><div>Rendering export...</div></body></html>');
+    previewTab.document.close();
+  }
+  exportBtn.disabled = true;
+  exportBtn.textContent = 'Exporting...';
+  progressShell.classList.remove('hidden');
+  progressBar.style.width = '0%';
+
+  try {
+    logDebug('Recorder initialized. Rendering frames...');
+    const blob = await blobTracker.exportWebM({
+      totalFrames: 48,
+      width: 1920,
+      height: 1080,
+      fps: 60,
+      videoBitsPerSecond: 12000000,
+      onProgress: ({ renderedFrames, totalFrames }) => {
+        const ratio = totalFrames > 0 ? (renderedFrames / totalFrames) : 0;
+        progressBar.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
+      }
+    });
+    logDebug(`Export complete (${Math.round(blob.size / 1024)} KB). Preparing preview.`);
+
+    const blobUrl = URL.createObjectURL(blob);
+    if (previewTab) {
+      previewTab.document.write(`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Blob Tracker - Export Preview</title><style>body{margin:0;background:#020617;color:#e2e8f0;font-family:monospace;display:grid;place-items:center;min-height:100vh}.shell{width:min(94vw,1200px);display:grid;gap:14px}video{width:100%;max-height:78vh;background:#000;border:1px solid rgba(148,163,184,.35)}.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}button,a{border:1px solid rgba(148,163,184,.4);background:#0f172a;color:#e2e8f0;padding:8px 12px;text-decoration:none;cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:.1em}</style></head><body><div class="shell"><video id="v" controls playsinline src="${blobUrl}"></video><div class="row"><button id="dl" type="button">Download</button><a href="${location.origin + location.pathname}">Back To Editor</a></div></div><script>const url='${blobUrl}';document.getElementById('dl').addEventListener('click',()=>{const a=document.createElement('a');a.href=url;a.download='blobber-track-render.webm';a.click();});<\/script></body></html>`);
+      previewTab.document.close();
+      logDebug('Preview tab loaded.');
+    } else {
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = 'blobber-track-render.webm';
+      link.click();
+      logDebug('Preview popup blocked. Fallback download triggered.');
+    }
+
+    progressBar.style.width = '100%';
+    window.setTimeout(() => {
+      progressShell.classList.add('hidden');
+      progressBar.style.width = '0%';
+    }, 900);
+  } catch (err) {
+    console.error(err);
+    logDebug(`Export failed: ${err?.message || 'unknown error'}`);
+    logDebug(`Export stack: ${err?.stack?.split('\n')[0] || 'no stack'}`);
+    progressShell.classList.add('hidden');
+    progressBar.style.width = '0%';
+    if (previewTab && !previewTab.closed) {
+      previewTab.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Export Error</title><style>body{margin:0;display:grid;place-items:center;min-height:100vh;background:#020617;color:#fda4af;font:12px monospace;padding:20px;text-align:center}</style></head><body><div>Export failed. Check debug console in editor.</div></body></html>');
+      previewTab.document.close();
+    }
+  } finally {
+    exportBtn.disabled = false;
+    exportBtn.textContent = 'Export WebM';
+    isExporting = false;
+  }
+}
+
+function runExportDiagnostics() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const overlay = document.getElementById('overlay');
+  const diagnostics = [
+    ['videoLoaded', Boolean(video?.src)],
+    ['videoReadyState', (video?.readyState || 0) >= 2],
+    ['canvasReady', Boolean(canvas?.getContext('2d'))],
+    ['overlayReady', Boolean(overlay?.getContext('2d'))],
+    ['mediaRecorder', typeof window.MediaRecorder !== 'undefined'],
+    ['captureStream', typeof canvas?.captureStream === 'function'],
+    ['opencvReady', blobTracker?.isCvLoaded === true]
+  ];
+  diagnostics.forEach(([name, pass]) => {
+    logDebug(`Export test ${pass ? 'PASS' : 'FAIL'}: ${name}`);
+  });
 }
 
 function startTracking() {
@@ -193,44 +331,45 @@ function startTracking() {
 
 function togglePlay() {
   if (!videoSrc) return;
-  stopReversePlayback();
 
   if (blobTracker.isPlaying) {
-    blobTracker.stopTracking();
-    document.getElementById('video').pause();
-    setPlayButtonState(false);
+    stopPlayback();
   } else {
     blobTracker.startTracking();
     setPlayButtonState(true);
   }
 }
 
-function toggleReversePlayback() {
-  const video = document.getElementById('video');
-  if (!videoSrc || !video.duration) return;
-
-  if (reverseTimer) {
-    stopReversePlayback();
-    return;
-  }
-
+function stopPlayback() {
+  if (!videoSrc) return;
   blobTracker.stopTracking();
+  document.getElementById('video').pause();
   setPlayButtonState(false);
-  reverseTimer = window.setInterval(() => {
-    if (video.currentTime <= 0.05) {
-      stopReversePlayback();
-      return;
-    }
-    video.currentTime = Math.max(0, video.currentTime - (1 / 30));
-    blobTracker.renderStillFrame();
-  }, 33);
 }
 
-function stopReversePlayback() {
-  if (reverseTimer) {
-    window.clearInterval(reverseTimer);
-    reverseTimer = null;
-  }
+function reverseStepPlayback() {
+  if (!videoSrc) return;
+  const video = document.getElementById('video');
+  stopPlayback();
+  video.currentTime = Math.max(0, video.currentTime - (1 / 3));
+  blobTracker.renderStillFrame();
+}
+
+function fastForwardPlayback() {
+  if (!videoSrc) return;
+  const video = document.getElementById('video');
+  stopPlayback();
+  const endTime = Number.isFinite(video.duration) ? video.duration : video.currentTime + (1 / 3);
+  video.currentTime = Math.min(endTime, video.currentTime + (1 / 3));
+  blobTracker.renderStillFrame();
+}
+
+function restartPlayback() {
+  if (!videoSrc) return;
+  const video = document.getElementById('video');
+  stopPlayback();
+  video.currentTime = 0;
+  blobTracker.renderStillFrame();
 }
 
 function toggleVideoEditor() {
@@ -251,11 +390,30 @@ function toggleInspector() {
 }
 
 function toggleHUDMobile() {
-  const panel = document.querySelector('.hud-panel');
-  panel.classList.toggle('hud-visible');
+  if (!window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches) return;
+  const shell = document.getElementById('app-shell');
+  const isOpen = shell.classList.toggle('mobile-hud-open');
+  setHUDToggleState(isOpen);
+}
+
+function setHUDToggleState(isOpen) {
+  const mobileToggle = document.getElementById('mobile-hud-toggle');
+  const drawerToggle = document.getElementById('mobile-hud-drawer-toggle');
+  mobileToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  drawerToggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+function syncResponsiveLayout() {
+  const shell = document.getElementById('app-shell');
+  const isMobile = window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches;
+  if (!isMobile) {
+    shell.classList.remove('mobile-hud-open');
+  }
+  setHUDToggleState(isMobile && shell.classList.contains('mobile-hud-open'));
 }
 
 function updateVideoFilters() {
+  const gammaRaw = parseInt(document.getElementById('gamma-slider').value);
   const filters = {
     sharpness: parseInt(document.getElementById('sharpen-slider').value) / 100,
     brightness: parseInt(document.getElementById('brightness-slider').value),
@@ -263,8 +421,35 @@ function updateVideoFilters() {
     saturation: parseInt(document.getElementById('saturation-slider').value) / 100,
     edgeDetect: parseInt(document.getElementById('edge-detect-slider').value) / 100,
     scanlineThickness: parseInt(document.getElementById('scanline-thickness-slider').value),
-    gamma: parseInt(document.getElementById('gamma-slider').value) / 100,
-    sepia: parseInt(document.getElementById('sepia-slider').value) / 100,
+    gamma: gammaRaw === 0 ? 1 : (gammaRaw / 100),
+    slitScanWidth: parseInt(document.getElementById('slit-scan-width-slider').value),
+    slitScanSpeed: parseInt(document.getElementById('slit-scan-speed-slider').value),
+    moshIntensity: parseInt(document.getElementById('datamosh-intensity-slider').value) / 100,
+    moshPersistence: parseInt(document.getElementById('datamosh-persistence-slider').value) / 100,
+    warpStrength: parseInt(document.getElementById('warp-strength-slider').value),
+    warpScale: parseInt(document.getElementById('warp-scale-slider').value) / 1000,
+    warpSpeed: parseInt(document.getElementById('warp-speed-slider').value) / 100,
+    heatAmplitude: parseInt(document.getElementById('heat-amplitude-slider').value),
+    heatFrequency: parseInt(document.getElementById('heat-frequency-slider').value) / 1000,
+    heatSpeed: parseInt(document.getElementById('heat-speed-slider').value) / 100,
+    echoFrames: parseInt(document.getElementById('echo-frames-slider').value),
+    echoDecay: parseInt(document.getElementById('echo-decay-slider').value) / 100,
+    pixelSortThreshold: parseInt(document.getElementById('pixel-sort-threshold-slider').value),
+    scanCollapseStrength: parseInt(document.getElementById('scan-collapse-strength-slider').value),
+    blockSize: parseInt(document.getElementById('block-size-slider').value),
+    shuffleAmount: parseInt(document.getElementById('shuffle-amount-slider').value) / 100,
+    crtWarp: parseInt(document.getElementById('crt-warp-slider').value) / 100,
+    crtScanlines: parseInt(document.getElementById('crt-scanlines-slider').value) / 100,
+    crtGlow: parseInt(document.getElementById('crt-glow-slider').value) / 100,
+    temporalNoise: parseInt(document.getElementById('temporal-noise-slider').value) / 100,
+    frameMix: parseInt(document.getElementById('frame-mix-slider').value) / 100,
+    motionSmear: parseInt(document.getElementById('motion-smear-slider').value),
+    feedbackScale: parseInt(document.getElementById('feedback-scale-slider').value) / 100,
+    feedbackOpacity: parseInt(document.getElementById('feedback-opacity-slider').value) / 100,
+    edgeGlow: parseInt(document.getElementById('edge-glow-slider').value) / 100,
+    edgeThreshold: parseInt(document.getElementById('edge-threshold-slider').value),
+    noiseDisplace: parseInt(document.getElementById('noise-displace-slider').value),
+    noiseSpeed: parseInt(document.getElementById('noise-speed-slider').value) / 100,
     rgbShift: {
       r: parseInt(document.getElementById('rgb-shift-r-slider').value),
       g: parseInt(document.getElementById('rgb-shift-g-slider').value),
@@ -282,13 +467,70 @@ function resetVideoFilters() {
   document.getElementById('saturation-slider').value = 100;
   document.getElementById('edge-detect-slider').value = 0;
   document.getElementById('scanline-thickness-slider').value = 0;
-  document.getElementById('gamma-slider').value = 100;
-  document.getElementById('sepia-slider').value = 0;
+  document.getElementById('gamma-slider').value = 0;
+  document.getElementById('slit-scan-width-slider').value = 0;
+  document.getElementById('slit-scan-speed-slider').value = 0;
+  document.getElementById('datamosh-intensity-slider').value = 0;
+  document.getElementById('datamosh-persistence-slider').value = 0;
+  document.getElementById('warp-strength-slider').value = 0;
+  document.getElementById('warp-scale-slider').value = 0;
+  document.getElementById('warp-speed-slider').value = 0;
+  document.getElementById('heat-amplitude-slider').value = 0;
+  document.getElementById('heat-frequency-slider').value = 0;
+  document.getElementById('heat-speed-slider').value = 0;
+  document.getElementById('echo-frames-slider').value = 0;
+  document.getElementById('echo-decay-slider').value = 0;
+  document.getElementById('pixel-sort-threshold-slider').value = 0;
+  document.getElementById('scan-collapse-strength-slider').value = 0;
+  document.getElementById('block-size-slider').value = 0;
+  document.getElementById('shuffle-amount-slider').value = 0;
+  document.getElementById('crt-warp-slider').value = 0;
+  document.getElementById('crt-scanlines-slider').value = 0;
+  document.getElementById('crt-glow-slider').value = 0;
+  document.getElementById('temporal-noise-slider').value = 0;
+  document.getElementById('frame-mix-slider').value = 0;
+  document.getElementById('motion-smear-slider').value = 0;
+  document.getElementById('feedback-scale-slider').value = 0;
+  document.getElementById('feedback-opacity-slider').value = 0;
+  document.getElementById('edge-glow-slider').value = 0;
+  document.getElementById('edge-threshold-slider').value = 50;
+  document.getElementById('noise-displace-slider').value = 0;
+  document.getElementById('noise-speed-slider').value = 0;
   document.getElementById('rgb-shift-r-slider').value = 0;
   document.getElementById('rgb-shift-g-slider').value = 0;
   document.getElementById('rgb-shift-b-slider').value = 0;
-  document.getElementById('scanline-intensity-slider').value = 30;
+  document.getElementById('scanline-intensity-slider').value = 0;
   updateVideoFilters();
+}
+
+function resetAllSettings() {
+  resetVideoFilters();
+  document.getElementById('blur-slider').value = 3;
+  document.getElementById('min-size-slider').value = 4;
+  document.getElementById('max-size-slider').value = 7000;
+  document.getElementById('sensitivity-slider').value = 360;
+  document.getElementById('show-boxes').checked = true;
+  document.getElementById('show-centers').checked = true;
+  document.getElementById('show-trails').checked = true;
+  document.getElementById('show-coords').checked = true;
+  document.getElementById('show-matte-blob').checked = false;
+  document.getElementById('matte-adaptive').checked = true;
+  document.getElementById('matte-video-opacity-slider').value = 35;
+  document.getElementById('matte-generation-slider').value = 3;
+  document.getElementById('matte-density-slider').value = 7;
+  document.getElementById('matte-radius-slider').value = 92;
+  document.getElementById('matte-size-slider').value = 105;
+  document.getElementById('matte-vertical-slider').value = 80;
+  document.getElementById('matte-persistence-slider').value = 14;
+  document.getElementById('matte-coverage-slider').value = 28;
+  document.getElementById('trail-hue-slider').value = 0;
+  document.getElementById('line-thickness-slider').value = 1;
+  document.getElementById('fx-negative').checked = false;
+  document.getElementById('fx-blur').checked = false;
+  setBlobColor('#ffffff');
+  setLineColor('#ffffff');
+  syncMatteBlobControls();
+  updateConfig();
 }
 
 function updateConfig() {
@@ -300,13 +542,13 @@ function updateConfig() {
     showBoxes: document.getElementById('show-boxes').checked,
     showCenters: document.getElementById('show-centers').checked,
     showTrails: document.getElementById('show-trails').checked,
-    showMesh: document.getElementById('show-mesh').checked,
     showCoords: document.getElementById('show-coords').checked,
     fxNegative: document.getElementById('fx-negative').checked,
     fxBlur: document.getElementById('fx-blur').checked,
-    fxGlow: document.getElementById('fx-glow').checked,
     showMatteBlob: document.getElementById('show-matte-blob').checked,
+    matteVideoOpacity: parseInt(document.getElementById('matte-video-opacity-slider').value) / 100,
     matteAdaptive: document.getElementById('matte-adaptive').checked,
+    matteGenerationSlowdown: parseInt(document.getElementById('matte-generation-slider').value),
     matteDensity: parseInt(document.getElementById('matte-density-slider').value),
     matteRadius: parseInt(document.getElementById('matte-radius-slider').value),
     matteTileScale: parseInt(document.getElementById('matte-size-slider').value) / 100,
@@ -315,7 +557,7 @@ function updateConfig() {
     matteCoverageMin: parseInt(document.getElementById('matte-coverage-slider').value) / 100,
     trailHue: parseInt(document.getElementById('trail-hue-slider').value),
     lineThickness: parseInt(document.getElementById('line-thickness-slider').value),
-    lineColor: blobTracker.config.lineColor || '#ef4444'
+    lineColor: blobTracker.config.lineColor || '#ffffff'
   };
   blobTracker.updateConfig(config);
 }
@@ -361,9 +603,17 @@ function toggleMoreTab() {
 
 function toggleBlobParamsPanel() {
   const panel = document.getElementById('blob-params-panel');
-  const icon = document.getElementById('blob-params-toggle-icon');
+  const indicator = document.getElementById('blob-params-indicator');
   panel.classList.toggle('hidden');
-  icon.innerHTML = panel.classList.contains('hidden') ? ICONS.chevronRight : ICONS.chevronDown;
+  if (panel.classList.contains('hidden')) {
+    indicator.classList.add('scale-75');
+    indicator.classList.remove('scale-125');
+    indicator.classList.replace('bg-pink-500', 'bg-pink-900');
+  } else {
+    indicator.classList.remove('scale-75');
+    indicator.classList.add('scale-125');
+    indicator.classList.replace('bg-pink-900', 'bg-pink-500');
+  }
 }
 
 function syncMatteBlobControls() {
@@ -403,19 +653,43 @@ function toggleRecording() {
 function setPlayButtonState(isPlaying) {
   document.getElementById('play-icon').innerHTML = isPlaying ? ICONS.pause : ICONS.play;
   document.getElementById('play-text').textContent = isPlaying ? 'Pause' : 'Start Tracking';
+  document.getElementById('nav-play-icon').innerHTML = isPlaying ? ICONS.pause : ICONS.play;
 }
 
 function initializeIcons() {
   setPlayButtonState(false);
+  document.getElementById('nav-reverse-icon').innerHTML = ICONS.reverse;
+  document.getElementById('nav-stop-icon').innerHTML = ICONS.stop;
+  document.getElementById('nav-play-icon').innerHTML = ICONS.play;
+  document.getElementById('nav-forward-icon').innerHTML = ICONS.forward;
+  document.getElementById('nav-restart-icon').innerHTML = ICONS.restart;
   document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;
-  document.getElementById('blob-params-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('record-icon').innerHTML = ICONS.camera;
-  setBlobColor('#ef4444');
-  setLineColor('#ef4444');
+  setBlobColor('#ffffff');
+  setLineColor('#ffffff');
   syncMatteBlobControls();
   updateVideoFilters();
   updateConfig();
+}
+
+function updateStartCode() {
+  const startCode = document.getElementById('start-code');
+  if (!startCode) return;
+  const randomValue = Math.floor(100000 + Math.random() * (90000000 - 100000));
+  startCode.textContent = randomValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function logDebug(message) {
+  const consoleEl = document.getElementById('debug-console');
+  if (!consoleEl) return;
+  const stamp = new Date().toISOString().slice(11, 19);
+  debugLines.push(`[${stamp}] ${message}`);
+  if (debugLines.length > 40) {
+    debugLines = debugLines.slice(debugLines.length - 40);
+  }
+  consoleEl.innerHTML = debugLines.map(line => `<div>${line}</div>`).join('');
+  consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
 function handleGlobalKeydown(e) {
@@ -451,7 +725,7 @@ function updateUI() {
   if (blobTracker.blobs.length === 0) {
     blobList.innerHTML = '<div class="h-full flex items-center justify-center opacity-20"><p class="text-[10px] mono uppercase tracking-widest text-white/40">No data stream</p></div>';
   } else {
-    blobTracker.blobs.forEach(blob => {
+    blobTracker.blobs.slice(0, 4).forEach(blob => {
       const blobItem = document.createElement('div');
       blobItem.className = 'blob-item';
       blobItem.innerHTML = `
@@ -460,9 +734,9 @@ function updateUI() {
           <div class="blob-color" style="background-color: ${blob.color}"></div>
         </div>
         <div class="blob-data">
-          <span>POS_X:</span> <span>${Math.round(blob.x)}</span>
-          <span>POS_Y:</span> <span>${Math.round(blob.y)}</span>
-          <span>AREA:</span> <span>${Math.round(blob.area)}</span>
+          <div class="blob-data-row"><span class="blob-label">POS_X:</span><span class="blob-value">${Math.round(blob.x)}</span></div>
+          <div class="blob-data-row"><span class="blob-label">POS_Y:</span><span class="blob-value">${Math.round(blob.y)}</span></div>
+          <div class="blob-data-row"><span class="blob-label">AREA:</span><span class="blob-value">${Math.round(blob.area)}</span></div>
         </div>
       `;
       blobList.appendChild(blobItem);
