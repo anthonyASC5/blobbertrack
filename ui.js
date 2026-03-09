@@ -110,6 +110,7 @@ function setupEventListeners() {
 
   // Module controls
   document.getElementById('video-editor-toggle').addEventListener('click', toggleVideoEditor);
+  document.getElementById('fx-presets-toggle').addEventListener('click', toggleFxPresetsPanel);
   document.getElementById('matte-blob-toggle').addEventListener('click', toggleMatteBlobPanel);
   document.getElementById('blob-params-toggle').addEventListener('click', toggleBlobParamsPanel);
 
@@ -384,6 +385,13 @@ function toggleVideoEditor() {
   }
 }
 
+function toggleFxPresetsPanel() {
+  const panel = document.getElementById('left-fx-panel');
+  const icon = document.getElementById('fx-presets-toggle-icon');
+  const isCollapsed = panel.classList.toggle('collapsed');
+  icon.innerHTML = isCollapsed ? ICONS.chevronRight : ICONS.chevronDown;
+}
+
 function toggleInspector() {
   const panel = document.querySelector('.inspector-panel');
   panel.classList.toggle('inspector-visible');
@@ -595,10 +603,13 @@ function toggleMatteBlobPanel() {
 }
 
 function toggleMoreTab() {
+  const inspector = document.querySelector('.inspector-panel');
   const panel = document.getElementById('more-tab-content');
   const icon = document.getElementById('more-tab-toggle-icon');
   panel.classList.toggle('hidden');
-  icon.innerHTML = panel.classList.contains('hidden') ? ICONS.chevronRight : ICONS.chevronDown;
+  const isOpen = !panel.classList.contains('hidden');
+  inspector?.classList.toggle('vhs-focus', isOpen);
+  icon.innerHTML = isOpen ? ICONS.chevronDown : ICONS.chevronRight;
 }
 
 function toggleBlobParamsPanel() {
@@ -664,6 +675,7 @@ function initializeIcons() {
   document.getElementById('nav-forward-icon').innerHTML = ICONS.forward;
   document.getElementById('nav-restart-icon').innerHTML = ICONS.restart;
   document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
+  document.getElementById('fx-presets-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('record-icon').innerHTML = ICONS.camera;
   setBlobColor('#ffffff');

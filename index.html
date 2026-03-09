@@ -89,7 +89,7 @@
     <main id="app-main" class="overflow-hidden relative">
         <!-- Left Panel - Inspector & Majin Boo -->
         <aside class="inspector-panel w-48 border-r border-slate-200 flex flex-col shrink-0 bg-black text-white min-h-0">
-            <div class="h-44 border-b border-white/10 bg-black flex flex-col overflow-hidden">
+            <div id="left-slime-panel" class="h-44 border-b border-white/10 bg-black flex flex-col overflow-hidden">
                 <div class="p-3 border-b border-white/5 flex items-center gap-2">
                     <svg class="ui-icon text-pink-400" viewBox="0 0 16 16" aria-hidden="true">
                         <path d="M8 1.5l4.5 4.5L8 10.5 3.5 6 8 1.5z"></path>
@@ -104,30 +104,39 @@
                 </div>
             </div>
 
-            <div class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
+            <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
                 <div id="vhs-slot" class="p-2"></div>
             </div>
 
-            <div class="h-36 border-b border-white/10 bg-black flex flex-col overflow-hidden fx-hud">
-                <div class="p-3 border-b border-pink-500/20 flex items-center gap-2 bg-pink-500/10">
-                    <svg class="ui-icon text-pink-300" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M2.5 8h11M8 2.5v11"></path>
-                    </svg>
-                    <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">FX HUD (may drop frames)</span>
-                </div>
-                <div class="flex-1 p-3 space-y-2">
-                    <label class="toggle-label">
-                        <input type="checkbox" id="fx-negative">
-                        <span class="toggle-text">Negative In Blob</span>
+            <div id="left-fx-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden fx-hud collapsed">
+                <button id="fx-presets-toggle" class="p-3 border-b border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10">
+                    <div class="flex items-center gap-2">
+                        <svg class="ui-icon text-pink-300" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M2.5 8h11M8 2.5v11"></path>
+                        </svg>
+                        <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Presets</span>
+                    </div>
+                    <span id="fx-presets-toggle-icon" class="icon-slot text-pink-300"></span>
+                </button>
+                <div id="fx-presets-content" class="fx-presets-body">
+                    <label class="preset-switch-row">
+                        <span class="preset-label mono">Negative</span>
+                        <span class="preset-switch">
+                            <input type="checkbox" id="fx-negative">
+                            <span class="preset-slider" aria-hidden="true"></span>
+                        </span>
                     </label>
-                    <label class="toggle-label">
-                        <input type="checkbox" id="fx-blur">
-                        <span class="toggle-text">Blur Glow In Blob</span>
+                    <label class="preset-switch-row">
+                        <span class="preset-label mono">Blur Glow In Blob</span>
+                        <span class="preset-switch">
+                            <input type="checkbox" id="fx-blur">
+                            <span class="preset-slider" aria-hidden="true"></span>
+                        </span>
                     </label>
                 </div>
             </div>
 
-            <div class="flex flex-col overflow-hidden min-h-0 border-b border-white/10">
+            <div id="left-blob-panel" class="flex flex-col overflow-hidden min-h-0 border-b border-white/10">
                 <div class="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">
                     <div class="flex items-center gap-2">
                         <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
@@ -145,17 +154,15 @@
                     </div>
                 </div>
             </div>
-            <div class="p-3 border-t border-pink-500/40 bg-pink-500/10 space-y-1.5">
-                <div class="text-[10px] mono uppercase tracking-[0.18em] text-pink-300 text-center">BY A. LALL EST. MARCH 2026</div>
-                <div class="text-[9px] mono uppercase tracking-widest text-pink-200">Contact Me!</div>
-                <div class="text-[9px] mono text-pink-100 break-all">all266@cornell.edu</div>
-               
-                <div class="text-[9px] mono text-pink-200">
-                    Subscribe :
+            <div id="left-contact-panel" class="p-2 border-t border-pink-500/40 bg-pink-500/10 space-y-1">
+                <div class="text-[8px] mono uppercase tracking-[0.16em] text-pink-300 text-center">BY A. LALL // MARCH 2026</div>
+                <div class="text-[8px] mono text-pink-100 break-all text-center">all266@cornell.edu</div>
+                <div class="text-[8px] mono text-pink-100 break-all text-center">Built with React + TSX + CDX5.4</div>
+                <div class="text-[8px] mono text-pink-200 text-center">
                     <a href="https://www.youtube.com/@shotbyall" target="_blank" rel="noopener noreferrer" class="underline text-pink-100">shotbyall</a>
                 </div>
             </div>
-            <div class="p-3 border-t border-white/10 bg-black/80">
+            <div id="left-debug-panel" class="p-3 border-t border-white/10 bg-black/80">
                 <div class="text-[9px] mono uppercase tracking-widest text-white/50 mb-2">Debug Console</div>
                 <div class="mb-2 text-[9px] mono uppercase tracking-widest text-emerald-300/80 space-y-1">
                     <div id="fps-display">FPS: 0</div>
