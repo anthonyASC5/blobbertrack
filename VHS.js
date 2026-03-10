@@ -3,6 +3,7 @@ class VHSEngine {
     this.processingRef = processingRef;
     this.fxCanvas = null;
     this.lastOutputCanvas = null;
+    this.slitScanCanvas = null;
   }
 
   apply(ctx, width, height, fx, blobs, hiddenBlobIds) {
@@ -11,27 +12,20 @@ class VHSEngine {
       fx.scanlineThickness > 0 ||
       fx.gamma !== 1 ||
       fx.slitScanSpeed > 0 ||
-      fx.moshIntensity > 0 ||
-      fx.warpStrength > 0 ||
       fx.heatAmplitude > 0 ||
       fx.echoFrames > 1 ||
       fx.pixelSortThreshold > 0 ||
       fx.scanCollapseStrength > 0 ||
       fx.shuffleAmount > 0 ||
-      fx.crtWarp > 0 ||
       fx.crtScanlines > 0 ||
       fx.crtGlow > 0 ||
-      fx.temporalNoise > 0 ||
-      fx.frameMix > 0 ||
-      fx.motionSmear > 0 ||
-      fx.feedbackOpacity > 0 ||
       fx.edgeGlow > 0 ||
       fx.noiseDisplace > 0 ||
       fx.rgbShift.r !== 0 || fx.rgbShift.g !== 0 || fx.rgbShift.b !== 0
     );
     if (!hasEffect) return;
 
-    const heavyMode = fx.pixelSortThreshold > 0 || fx.shuffleAmount > 0 || fx.echoFrames > 2 || fx.feedbackOpacity > 0.35;
+    const heavyMode = fx.pixelSortThreshold > 0 || fx.shuffleAmount > 0 || fx.echoFrames > 2;
     if (heavyMode && this.lastOutputCanvas && (this.processingRef.frameCount % 2 === 1)) {
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(this.lastOutputCanvas, 0, 0);
@@ -51,10 +45,10 @@ class VHSEngine {
     offCtx.drawImage(ctx.canvas, 0, 0);
 
     if (fx.slitScanSpeed > 0) {
-      if (!this.processingRef.slitScanBuffer) {
-        this.processingRef.slitScanBuffer = document.createElement('canvas');
+      if (!this.slitScanCanvas) {
+        this.slitScanCanvas = document.createElement('canvas');
       }
-      const slitCanvas = this.processingRef.slitScanBuffer;
+      const slitCanvas = this.slitScanCanvas;
       if (slitCanvas.width !== width || slitCanvas.height !== height) {
         slitCanvas.width = width;
         slitCanvas.height = height;
@@ -62,7 +56,7 @@ class VHSEngine {
       const slitCtx = slitCanvas.getContext('2d');
       if (slitCtx) {
         const speed = Math.max(1, fx.slitScanSpeed | 0);
-        const scanW = Math.max(1, fx.slitScanWidth | 0);
+        const scanW = 2;
         const sx = Math.max(0, Math.floor((width - scanW) * 0.5));
         slitCtx.drawImage(slitCanvas, -speed, 0);
         slitCtx.drawImage(offCtx.canvas, sx, 0, scanW, height, width - speed, 0, scanW, height);
@@ -97,23 +91,11 @@ class VHSEngine {
         let dispY = y;
 
         if (fx.heatAmplitude > 0) {
-          dispX += Math.sin(y * fx.heatFrequency + time * fx.heatSpeed) * fx.heatAmplitude;
-        }
-        if (fx.warpStrength > 0) {
-          const noise = Math.sin((x + time * 30 * fx.warpSpeed) * fx.warpScale * 12.3) * Math.cos((y - time * 21 * fx.warpSpeed) * fx.warpScale * 11.1);
-          dispX += noise * fx.warpStrength;
-          dispY += noise * fx.warpStrength * 0.6;
+          dispX += Math.sin(y * 0.03 + time * fx.heatSpeed) * fx.heatAmplitude;
         }
         if (fx.noiseDisplace > 0) {
           const n = Math.sin((x + y) * 0.05 + time * fx.noiseSpeed * 3.1);
           dispX += n * fx.noiseDisplace;
-        }
-        if (fx.crtWarp > 0) {
-          const nx = (x / width) * 2 - 1;
-          const ny = (y / height) * 2 - 1;
-          const bend = (nx * nx + ny * ny) * fx.crtWarp * 18;
-          dispX += nx * bend;
-          dispY += ny * bend;
         }
         if (fx.scanCollapseStrength > 0 && visibleBlobs.length) {
           let best = null;
@@ -130,23 +112,6 @@ class VHSEngine {
             dispY += (best.y - y) * (fx.scanCollapseStrength / 100) * influence;
           }
         }
-        if (fx.motionSmear > 0 && visibleBlobs.length) {
-          let nearest = null;
-          let nearestDist = Infinity;
-          for (const blob of visibleBlobs) {
-            const d = Math.hypot(x - blob.x, y - blob.y);
-            if (d < nearestDist) {
-              nearestDist = d;
-              nearest = blob;
-            }
-          }
-          if (nearest && nearestDist < 180) {
-            const influence = 1 - (nearestDist / 180);
-            dispX -= nearest.velocityX * (fx.motionSmear / 20) * influence;
-            dispY -= nearest.velocityY * (fx.motionSmear / 20) * influence;
-          }
-        }
-
         let r = sampleChannel(dispX + shiftR, dispY, 0);
         let g = sampleChannel(dispX + shiftG, dispY, 1);
         let b = sampleChannel(dispX + shiftB, dispY, 2);
@@ -217,22 +182,6 @@ class VHSEngine {
       }
     }
 
-    if (this.processingRef.prevFxImageData) {
-      const prev = this.processingRef.prevFxImageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        if (fx.moshIntensity > 0) {
-          data[i] = data[i] * (1 - fx.moshIntensity) + prev[i] * fx.moshIntensity * fx.moshPersistence;
-          data[i + 1] = data[i + 1] * (1 - fx.moshIntensity) + prev[i + 1] * fx.moshIntensity * fx.moshPersistence;
-          data[i + 2] = data[i + 2] * (1 - fx.moshIntensity) + prev[i + 2] * fx.moshIntensity * fx.moshPersistence;
-        }
-        if (fx.temporalNoise > 0 && Math.random() < fx.temporalNoise * 0.12) {
-          data[i] = data[i] * (1 - fx.frameMix) + prev[i] * fx.frameMix;
-          data[i + 1] = data[i + 1] * (1 - fx.frameMix) + prev[i + 1] * fx.frameMix;
-          data[i + 2] = data[i + 2] * (1 - fx.frameMix) + prev[i + 2] * fx.frameMix;
-        }
-      }
-    }
-
     this.processingRef.echoHistory.unshift(new Uint8ClampedArray(data));
     this.processingRef.echoHistory = this.processingRef.echoHistory.slice(0, Math.max(1, fx.echoFrames | 0));
     if (fx.echoFrames > 1 && this.processingRef.echoHistory.length > 1) {
@@ -256,8 +205,8 @@ class VHSEngine {
 
     offCtx.putImageData(imageData, 0, 0);
 
-    if (fx.shuffleAmount > 0 && fx.blockSize > 3) {
-      const block = fx.blockSize | 0;
+    if (fx.shuffleAmount > 0) {
+      const block = 20;
       const swaps = Math.floor((width * height) / (block * block) * fx.shuffleAmount * 0.04);
       for (let i = 0; i < swaps; i++) {
         const ax = Math.floor(Math.random() * (width / block)) * block;
@@ -269,15 +218,6 @@ class VHSEngine {
         offCtx.putImageData(patch, bx, by);
         offCtx.putImageData(patchB, ax, ay);
       }
-    }
-
-    if (fx.feedbackOpacity > 0 && this.processingRef.feedbackFrame) {
-      offCtx.save();
-      offCtx.globalAlpha = fx.feedbackOpacity;
-      const fw = width * fx.feedbackScale;
-      const fh = height * fx.feedbackScale;
-      offCtx.drawImage(this.processingRef.feedbackFrame, (width - fw) * 0.5, (height - fh) * 0.5, fw, fh);
-      offCtx.restore();
     }
 
     if (fx.crtScanlines > 0) {
@@ -299,15 +239,6 @@ class VHSEngine {
       offCtx.restore();
     }
 
-    if (!this.processingRef.feedbackFrame) {
-      this.processingRef.feedbackFrame = document.createElement('canvas');
-    }
-    this.processingRef.feedbackFrame.width = width;
-    this.processingRef.feedbackFrame.height = height;
-    const fbCtx = this.processingRef.feedbackFrame.getContext('2d');
-    fbCtx?.drawImage(offCtx.canvas, 0, 0);
-
-    this.processingRef.prevFxImageData = offCtx.getImageData(0, 0, width, height);
     if (!this.lastOutputCanvas) {
       this.lastOutputCanvas = document.createElement('canvas');
     }

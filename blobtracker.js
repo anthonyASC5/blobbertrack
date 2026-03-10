@@ -14,10 +14,7 @@ class BlobTracker {
       recordedChunks: [],
       mediaRecorder: null,
       frameCount: 0,
-      prevFxImageData: null,
-      feedbackFrame: null,
-      echoHistory: [],
-      slitScanBuffer: null
+      echoHistory: []
     };
     this.requestRef = null;
     this.isPlaying = false;
@@ -33,16 +30,15 @@ class BlobTracker {
       showCoords: true,
       fxNegative: false,
       fxBlur: false,
+      fxMagnifierLink: false,
       showMatteBlob: false,
       matteVideoOpacity: 0.35,
-      matteAdaptive: true,
       matteGenerationSlowdown: 3,
       matteDensity: 7,
       matteRadius: 92,
       matteTileScale: 1.05,
       matteVerticalSpread: 0.8,
       mattePersistence: 14,
-      matteCoverageMin: 0.28,
       blobColor: '#ffffff',
       lineColor: '#ffffff',
       trailHue: 0,
@@ -56,30 +52,16 @@ class BlobTracker {
       edgeDetect: 0,
       scanlineThickness: 0,
       gamma: 1,
-      slitScanWidth: 2,
       slitScanSpeed: 0,
-      moshIntensity: 0,
-      moshPersistence: 0.8,
-      warpStrength: 0,
-      warpScale: 0.01,
-      warpSpeed: 0.3,
       heatAmplitude: 0,
-      heatFrequency: 0.03,
       heatSpeed: 2,
       echoFrames: 1,
       echoDecay: 0.7,
       pixelSortThreshold: 0,
       scanCollapseStrength: 0,
-      blockSize: 20,
       shuffleAmount: 0,
-      crtWarp: 0,
       crtScanlines: 0,
       crtGlow: 0,
-      temporalNoise: 0,
-      frameMix: 0,
-      motionSmear: 0,
-      feedbackScale: 0.98,
-      feedbackOpacity: 0,
       edgeGlow: 0,
       edgeThreshold: 50,
       noiseDisplace: 0,
@@ -364,9 +346,13 @@ class BlobTracker {
 
     this.renderBlobCloseControls(config.showBoxes ? visibleBlobs : [], false);
 
+    if (config.fxMagnifierLink) {
+      this.renderMagnifierLinkOverlay(oCtx, visibleBlobs, sourceCanvas, primaryColor, lineColor, thickness);
+    }
+
     visibleBlobs.forEach(blob => {
       // Trails: one straight connection to nearest visible blob.
-      if (config.showTrails && visibleBlobs.length > 1) {
+      if (config.showTrails && !config.fxMagnifierLink && visibleBlobs.length > 1) {
         let nearest = null;
         let nearestDist = Infinity;
         for (const other of visibleBlobs) {
@@ -410,6 +396,51 @@ class BlobTracker {
     });
   }
 
+  renderMagnifierLinkOverlay(oCtx, blobs, sourceCanvas, primaryColor, lineColor, thickness) {
+    if (!sourceCanvas || blobs.length < 2) return;
+
+    blobs.forEach(blob => {
+      let nearest = null;
+      let nearestDist = Infinity;
+      for (const other of blobs) {
+        if (other.id === blob.id) continue;
+        const dist = Math.hypot(blob.x - other.x, blob.y - other.y);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = other;
+        }
+      }
+      if (!nearest) return;
+
+      const lensW = Math.max(32, nearest.width * 1.4);
+      const lensH = Math.max(32, nearest.height * 1.4);
+      const lensX = nearest.x - lensW / 2;
+      const lensY = nearest.y - lensH / 2;
+      const sampleW = Math.max(18, blob.width * 0.6);
+      const sampleH = Math.max(18, blob.height * 0.6);
+      const sampleX = Math.max(0, Math.min(sourceCanvas.width - sampleW, blob.x - sampleW / 2));
+      const sampleY = Math.max(0, Math.min(sourceCanvas.height - sampleH, blob.y - sampleH / 2));
+
+      oCtx.save();
+      oCtx.beginPath();
+      oCtx.rect(lensX, lensY, lensW, lensH);
+      oCtx.clip();
+      oCtx.drawImage(sourceCanvas, sampleX, sampleY, sampleW, sampleH, lensX, lensY, lensW, lensH);
+      oCtx.restore();
+
+      oCtx.beginPath();
+      oCtx.strokeStyle = `${lineColor}aa`;
+      oCtx.lineWidth = thickness;
+      oCtx.moveTo(blob.x, blob.y);
+      oCtx.lineTo(nearest.x, nearest.y);
+      oCtx.stroke();
+
+      oCtx.strokeStyle = primaryColor;
+      oCtx.lineWidth = thickness;
+      oCtx.strokeRect(lensX, lensY, lensW, lensH);
+    });
+  }
+
   renderMatteBlob(oCtx, blobs, sourceCanvas) {
     const width = oCtx.canvas.width;
     const height = oCtx.canvas.height;
@@ -435,7 +466,6 @@ class BlobTracker {
     const tileScale = this.config.matteTileScale || 1.3;
     const verticalSpread = this.config.matteVerticalSpread || 0.7;
     const persistence = this.config.mattePersistence || 10;
-    const minCoverage = this.config.matteCoverageMin || 0.15;
     const frameSeed = Math.floor(performance.now() / 100);
     const generationSlowdown = Math.max(1, this.config.matteGenerationSlowdown || 1);
     const shouldGenerateTiles = this.processingRef.frameCount % generationSlowdown === 0;
@@ -494,22 +524,7 @@ class BlobTracker {
       }
     }
 
-    let coverage = this.computeTileCoverage(combinedTiles, width, height);
-    if (this.config.matteAdaptive && coverage < minCoverage && combinedTiles.length) {
-      const neededCopies = Math.ceil((minCoverage - coverage) * 220);
-      for (let i = 0; i < neededCopies; i++) {
-        const baseTile = combinedTiles[i % combinedTiles.length];
-        const jitterX = ((i * 17) % 21) - 10;
-        const jitterY = ((i * 13) % 19) - 9;
-        combinedTiles.push({
-          ...baseTile,
-          dx: Math.max(0, Math.min(width - baseTile.dw, baseTile.dx + jitterX)),
-          dy: Math.max(0, Math.min(height - baseTile.dh, baseTile.dy + jitterY)),
-          life: Math.max(2, baseTile.life - 1)
-        });
-      }
-    }
-    coverage = this.computeTileCoverage(combinedTiles, width, height);
+    const coverage = this.computeTileCoverage(combinedTiles, width, height);
     this.processingRef.matteTiles = combinedTiles.filter(tile => tile.life > 0).slice(-1500);
 
     combinedTiles.forEach(tile => {
@@ -578,10 +593,7 @@ class BlobTracker {
     const controlsLayer = document.getElementById('blob-controls-layer');
     if (controlsLayer) controlsLayer.innerHTML = '';
     this.processingRef.matteTiles = [];
-    this.processingRef.prevFxImageData = null;
-    this.processingRef.feedbackFrame = null;
     this.processingRef.echoHistory = [];
-    this.processingRef.slitScanBuffer = null;
   }
 
   computeTileCoverage(tiles, width, height) {
@@ -752,6 +764,7 @@ class BlobTracker {
 
   startRecording() {
     if (!this.overlayElement || !this.canvasElement) return;
+    this.processingRef.recordedChunks = [];
     const recordCanvas = document.createElement('canvas');
     recordCanvas.width = 1280;
     recordCanvas.height = 720;
@@ -790,116 +803,6 @@ class BlobTracker {
     this.processingRef.mediaRecorder?.stop();
   }
 
-  async seekVideo(timeInSeconds) {
-    if (!this.videoElement) return;
-    const video = this.videoElement;
-    const safeTime = Math.max(0, Math.min(timeInSeconds, Math.max(0, video.duration || 0)));
-    await new Promise((resolve) => {
-      const onSeeked = () => {
-        video.removeEventListener('seeked', onSeeked);
-        resolve();
-      };
-      video.addEventListener('seeked', onSeeked, { once: true });
-      video.currentTime = safeTime;
-    });
-  }
-
-  async exportWebM({
-    totalFrames = 48,
-    width = 1920,
-    height = 1080,
-    fps = 60,
-    videoBitsPerSecond = 12000000,
-    onProgress
-  } = {}) {
-    if (!this.videoElement || !this.canvasElement || !this.overlayElement) {
-      throw new Error('Export unavailable: missing video/canvas elements.');
-    }
-
-    const video = this.videoElement;
-    if (!video.src) {
-      throw new Error('Export unavailable: no loaded video.');
-    }
-
-    if (!video.duration || Number.isNaN(video.duration)) {
-      await new Promise((resolve) => {
-        video.addEventListener('loadedmetadata', () => resolve(), { once: true });
-      });
-    }
-
-    const wasPlaying = this.isPlaying;
-    this.stopTracking();
-    video.pause();
-
-    await this.seekVideo(0);
-    this.processingRef.nextId = 1;
-    this.processingRef.activeBlobs = [];
-    this.processingRef.frameCount = 0;
-    this.clearHiddenBlobs();
-
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = width;
-    exportCanvas.height = height;
-    const exportCtx = exportCanvas.getContext('2d');
-    if (!exportCtx) {
-      throw new Error('Export unavailable: failed to allocate export canvas.');
-    }
-
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9'
-      : 'video/webm';
-    const stream = exportCanvas.captureStream(fps);
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond });
-    const chunks = [];
-    recorder.ondataavailable = (event) => {
-      if (event.data && event.data.size > 0) chunks.push(event.data);
-    };
-
-    const done = new Promise((resolve) => {
-      recorder.onstop = () => resolve();
-    });
-
-    recorder.start(100);
-    this.startTracking();
-
-    const waitForRenderedFrame = () => new Promise((resolve) => {
-      if (typeof video.requestVideoFrameCallback === 'function') {
-        video.requestVideoFrameCallback(() => resolve());
-        return;
-      }
-      requestAnimationFrame(() => resolve());
-    });
-
-    let renderedFrames = 0;
-    while (renderedFrames < totalFrames && !video.ended) {
-      // eslint-disable-next-line no-await-in-loop
-      await waitForRenderedFrame();
-      exportCtx.clearRect(0, 0, width, height);
-      exportCtx.drawImage(this.canvasElement, 0, 0, width, height);
-      exportCtx.drawImage(this.overlayElement, 0, 0, width, height);
-      renderedFrames++;
-      onProgress?.({ renderedFrames, totalFrames });
-    }
-
-    if (typeof recorder.requestData === 'function') {
-      recorder.requestData();
-    }
-    await new Promise((resolve) => setTimeout(resolve, Math.max(70, Math.round(2000 / fps))));
-    recorder.stop();
-    await done;
-
-    this.stopTracking();
-    video.pause();
-    await this.seekVideo(0);
-    this.renderStillFrame();
-    if (wasPlaying) this.startTracking();
-
-    if (!chunks.length) {
-      throw new Error('Export produced no chunks.');
-    }
-
-    return new Blob(chunks, { type: mimeType });
-  }
 }
 
 // Export for use in other modules

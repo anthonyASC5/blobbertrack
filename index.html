@@ -64,7 +64,6 @@
                 Upload
                 <input type="file" id="video-upload" accept="video/*" class="hidden">
             </label>
-            <button id="export-webm-btn" class="px-3 py-1.5 rounded-sm bg-slate-800 text-white hover:bg-slate-700 transition-colors text-[10px] mono uppercase tracking-wider">Export WebM</button>
             <button id="reset-all-btn" class="px-3 py-1.5 rounded-sm bg-pink-500 text-white hover:bg-pink-400 transition-colors text-[10px] mono uppercase tracking-wider">Reset</button>
 
             <button id="info-btn" class="w-6 h-6 rounded-full border border-slate-900 bg-white text-slate-900 flex items-center justify-center text-[14px] mono hover:bg-slate-50 transition-colors">
@@ -76,12 +75,12 @@
                 <span id="play-text">Start Tracking</span>
             </button>
             <div class="h-4 w-[1px] bg-slate-200 mx-2"></div>
-            <button id="record-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn">
-                <span id="record-icon" class="icon-slot"></span>
+            <button id="record-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-pink-500 text-white hover:bg-pink-400 transition-colors text-[10px] mono uppercase tracking-wider disabled:opacity-50">
+                <span id="record-text">Play To Render</span>
+                <span id="record-icon-shell" class="w-5 h-5 rounded-sm bg-white/15 flex items-center justify-center shrink-0">
+                    <span id="record-icon" class="icon-slot"></span>
+                </span>
             </button>
-        </div>
-        <div id="export-progress-shell" class="absolute left-0 right-0 bottom-0 h-[3px] bg-slate-200/60 hidden">
-            <div id="export-progress-bar" class="h-full w-0 bg-emerald-500 transition-[width] duration-75 ease-linear"></div>
         </div>
     </header>
 
@@ -133,7 +132,13 @@
                             <span class="preset-slider" aria-hidden="true"></span>
                         </span>
                     </label>
-                    <button id="night-vision-preset-btn" class="preset-action-btn mono" type="button">Night Vision</button>
+                    <label class="preset-switch-row">
+                        <span class="preset-label mono">Magnify Link Blob</span>
+                        <span class="preset-switch">
+                            <input type="checkbox" id="fx-magnifier-link">
+                            <span class="preset-slider" aria-hidden="true"></span>
+                        </span>
+                    </label>
                 </div>
             </div>
 
@@ -203,9 +208,9 @@
             </div>
 
             <!-- Xbox 360 Style Start Button Overlay -->
-            <div id="start-overlay" class="absolute inset-0 z-30 flex items-center justify-center bg-slate-800/95 hidden">
+            <div id="start-overlay" class="absolute inset-0 z-30 flex items-center justify-center bg-white hidden">
                 <button id="start-btn" class="start-slate-btn">
-                    <span class="start-slate-text">start tracking</span>
+                    <span class="start-slate-text">click to start</span>
                     <span id="start-code" class="start-slate-code">000.000</span>
                 </button>
             </div>
@@ -276,40 +281,12 @@
                                     <input type="range" id="gamma-slider" min="50" max="300" value="100" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Slit Scan Width</label>
-                                    <input type="range" id="slit-scan-width-slider" min="1" max="8" value="2" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Slit Scan Speed</label>
                                     <input type="range" id="slit-scan-speed-slider" min="0" max="8" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Datamosh Intensity</label>
-                                    <input type="range" id="datamosh-intensity-slider" min="0" max="100" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Datamosh Persistence</label>
-                                    <input type="range" id="datamosh-persistence-slider" min="0" max="100" value="80" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Warp Strength</label>
-                                    <input type="range" id="warp-strength-slider" min="0" max="40" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Warp Scale</label>
-                                    <input type="range" id="warp-scale-slider" min="1" max="50" value="10" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Warp Speed</label>
-                                    <input type="range" id="warp-speed-slider" min="0" max="300" value="30" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Heat Amplitude</label>
                                     <input type="range" id="heat-amplitude-slider" min="0" max="30" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Heat Frequency</label>
-                                    <input type="range" id="heat-frequency-slider" min="1" max="100" value="30" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Heat Speed</label>
@@ -332,16 +309,8 @@
                                     <input type="range" id="scan-collapse-strength-slider" min="0" max="40" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Block Size</label>
-                                    <input type="range" id="block-size-slider" min="4" max="60" value="20" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Shuffle Amount</label>
                                     <input type="range" id="shuffle-amount-slider" min="0" max="100" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">CRT Warp</label>
-                                    <input type="range" id="crt-warp-slider" min="0" max="100" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">CRT Scanlines</label>
@@ -350,26 +319,6 @@
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">CRT Glow</label>
                                     <input type="range" id="crt-glow-slider" min="0" max="100" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Temporal Noise</label>
-                                    <input type="range" id="temporal-noise-slider" min="0" max="100" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Frame Mix</label>
-                                    <input type="range" id="frame-mix-slider" min="0" max="100" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Motion Smear</label>
-                                    <input type="range" id="motion-smear-slider" min="0" max="40" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Feedback Scale</label>
-                                    <input type="range" id="feedback-scale-slider" min="80" max="100" value="98" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Feedback Opacity</label>
-                                    <input type="range" id="feedback-opacity-slider" min="0" max="100" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Edge Glow</label>
@@ -448,7 +397,7 @@
                         </div>
                     </div>
                     <div class="space-y-4">
-                        <button id="blob-params-toggle" class="flex items-center justify-between w-full group">
+                        <button id="blob-params-toggle" class="p-3 border border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10 rounded-sm">
                             <div class="flex items-center gap-2">
                                 <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
                                     <circle cx="6" cy="6" r="1"></circle>
@@ -458,9 +407,9 @@
                                 </svg>
                                 <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Blob Parameters</span>
                             </div>
-                            <div id="blob-params-indicator" class="w-2 h-2 rounded-full bg-pink-900 scale-75"></div>
+                            <span id="blob-params-toggle-icon" class="icon-slot text-pink-300"></span>
                         </button>
-                        <div id="blob-params-panel" class="overflow-hidden space-y-4 hidden">
+                        <div id="blob-params-panel" class="overflow-hidden space-y-4">
                             <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-2 blob-params-panel-ui">
                                 <label class="toggle-label">
                                     <input type="checkbox" id="show-boxes" checked>
@@ -557,10 +506,6 @@
                                     <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Video Behind Matte</label>
                                     <input type="range" id="matte-video-opacity-slider" min="0" max="100" value="35" class="w-full matte-slider">
                                 </div>
-                                <label class="toggle-label">
-                                    <input type="checkbox" id="matte-adaptive" checked>
-                                    <span class="toggle-text">Adaptive Density</span>
-                                </label>
                                 <div class="control-slider dark">
                                     <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Generation Slowdown</label>
                                     <input type="range" id="matte-generation-slider" min="1" max="12" value="3" class="w-full matte-slider">
@@ -584,10 +529,6 @@
                                 <div class="control-slider dark">
                                     <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Tile Persistence</label>
                                     <input type="range" id="matte-persistence-slider" min="0" max="25" value="14" class="w-full matte-slider">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Coverage Safeguard</label>
-                                    <input type="range" id="matte-coverage-slider" min="5" max="40" value="28" class="w-full matte-slider">
                                 </div>
                             </div>
                         </div>
