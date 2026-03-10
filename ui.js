@@ -7,6 +7,65 @@ let videoSrc = null;
 let isExporting = false;
 let debugLines = [];
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 900px)';
+const NIGHT_VISION_PRESET = {
+  video: {
+    sharpen: 100,
+    brightness: 6,
+    contrast: 150,
+    saturation: 0,
+    edgeDetect: 18,
+    scanlineThickness: 1,
+    gamma: 110,
+    slitScanWidth: 3,
+    slitScanSpeed: 2,
+    datamoshIntensity: 12,
+    datamoshPersistence: 86,
+    warpStrength: 4,
+    warpScale: 16,
+    warpSpeed: 40,
+    heatAmplitude: 0,
+    heatFrequency: 30,
+    heatSpeed: 200,
+    echoFrames: 4,
+    echoDecay: 76,
+    pixelSortThreshold: 48,
+    scanCollapseStrength: 11,
+    blockSize: 14,
+    shuffleAmount: 8,
+    crtWarp: 6,
+    crtScanlines: 18,
+    crtGlow: 9,
+    temporalNoise: 14,
+    frameMix: 26,
+    motionSmear: 10,
+    feedbackScale: 95,
+    feedbackOpacity: 18,
+    edgeGlow: 20,
+    edgeThreshold: 92,
+    noiseDisplace: 4,
+    noiseSpeed: 135,
+    rgbShiftR: 0,
+    rgbShiftG: 0,
+    rgbShiftB: 0,
+    scanlineIntensity: 24
+  },
+  tracking: {
+    blur: 3,
+    minSize: 4,
+    maxSize: 7000,
+    sensitivity: 360,
+    showBoxes: true,
+    showCenters: true,
+    showTrails: true,
+    showCoords: true,
+    showMatteBlob: false,
+    lineThickness: 1,
+    blobColor: '#00ff00',
+    lineColor: '#00ff00',
+    fxNegative: false,
+    fxBlur: false
+  }
+};
 const ICONS = {
   play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z"></path></svg>',
   pause: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9"></path></svg>',
@@ -84,6 +143,7 @@ function setupEventListeners() {
   document.getElementById('video-upload').addEventListener('change', handleFileUpload);
   document.getElementById('export-webm-btn').addEventListener('click', handleExportWebM);
   document.getElementById('reset-all-btn').addEventListener('click', resetAllSettings);
+  document.getElementById('night-vision-preset-btn').addEventListener('click', applyNightVisionPreset);
   document.getElementById('upload-zone').addEventListener('click', () => {
     document.getElementById('video-upload').click();
   });
@@ -475,22 +535,22 @@ function resetVideoFilters() {
   document.getElementById('saturation-slider').value = 100;
   document.getElementById('edge-detect-slider').value = 0;
   document.getElementById('scanline-thickness-slider').value = 0;
-  document.getElementById('gamma-slider').value = 0;
-  document.getElementById('slit-scan-width-slider').value = 0;
+  document.getElementById('gamma-slider').value = 100;
+  document.getElementById('slit-scan-width-slider').value = 2;
   document.getElementById('slit-scan-speed-slider').value = 0;
   document.getElementById('datamosh-intensity-slider').value = 0;
-  document.getElementById('datamosh-persistence-slider').value = 0;
+  document.getElementById('datamosh-persistence-slider').value = 80;
   document.getElementById('warp-strength-slider').value = 0;
-  document.getElementById('warp-scale-slider').value = 0;
-  document.getElementById('warp-speed-slider').value = 0;
+  document.getElementById('warp-scale-slider').value = 10;
+  document.getElementById('warp-speed-slider').value = 30;
   document.getElementById('heat-amplitude-slider').value = 0;
-  document.getElementById('heat-frequency-slider').value = 0;
-  document.getElementById('heat-speed-slider').value = 0;
-  document.getElementById('echo-frames-slider').value = 0;
-  document.getElementById('echo-decay-slider').value = 0;
+  document.getElementById('heat-frequency-slider').value = 30;
+  document.getElementById('heat-speed-slider').value = 200;
+  document.getElementById('echo-frames-slider').value = 1;
+  document.getElementById('echo-decay-slider').value = 70;
   document.getElementById('pixel-sort-threshold-slider').value = 0;
   document.getElementById('scan-collapse-strength-slider').value = 0;
-  document.getElementById('block-size-slider').value = 0;
+  document.getElementById('block-size-slider').value = 20;
   document.getElementById('shuffle-amount-slider').value = 0;
   document.getElementById('crt-warp-slider').value = 0;
   document.getElementById('crt-scanlines-slider').value = 0;
@@ -498,20 +558,21 @@ function resetVideoFilters() {
   document.getElementById('temporal-noise-slider').value = 0;
   document.getElementById('frame-mix-slider').value = 0;
   document.getElementById('motion-smear-slider').value = 0;
-  document.getElementById('feedback-scale-slider').value = 0;
+  document.getElementById('feedback-scale-slider').value = 98;
   document.getElementById('feedback-opacity-slider').value = 0;
   document.getElementById('edge-glow-slider').value = 0;
   document.getElementById('edge-threshold-slider').value = 50;
   document.getElementById('noise-displace-slider').value = 0;
-  document.getElementById('noise-speed-slider').value = 0;
+  document.getElementById('noise-speed-slider').value = 100;
   document.getElementById('rgb-shift-r-slider').value = 0;
   document.getElementById('rgb-shift-g-slider').value = 0;
   document.getElementById('rgb-shift-b-slider').value = 0;
-  document.getElementById('scanline-intensity-slider').value = 0;
+  document.getElementById('scanline-intensity-slider').value = 30;
   updateVideoFilters();
 }
 
 function resetAllSettings() {
+  blobTracker.clearHiddenBlobs();
   resetVideoFilters();
   document.getElementById('blur-slider').value = 3;
   document.getElementById('min-size-slider').value = 4;
@@ -537,7 +598,77 @@ function resetAllSettings() {
   document.getElementById('fx-blur').checked = false;
   setBlobColor('#ffffff');
   setLineColor('#ffffff');
+  setPanelExpanded('video-editor-panel', false, 'video-editor-toggle-icon');
+  setPanelExpanded('left-fx-panel', false, 'fx-presets-toggle-icon');
+  setSimpleTogglePanel('more-tab-content', false, 'more-tab-toggle-icon');
+  setIndicatorPanelState('blob-params-panel', 'blob-params-indicator', false);
+  setIndicatorPanelState('color-science-panel', 'color-science-indicator', false);
+  setIndicatorPanelState('matte-blob-panel', 'matte-blob-indicator', false);
+  document.querySelector('.inspector-panel')?.classList.remove('vhs-focus');
+  document.getElementById('app-shell').classList.remove('mobile-hud-open');
+  setHUDToggleState(false);
   syncMatteBlobControls();
+  updateConfig();
+}
+
+function applyNightVisionPreset() {
+  const video = NIGHT_VISION_PRESET.video;
+  const tracking = NIGHT_VISION_PRESET.tracking;
+  setInputValue('sharpen-slider', video.sharpen);
+  setInputValue('brightness-slider', video.brightness);
+  setInputValue('contrast-slider', video.contrast);
+  setInputValue('saturation-slider', video.saturation);
+  setInputValue('edge-detect-slider', video.edgeDetect);
+  setInputValue('scanline-thickness-slider', video.scanlineThickness);
+  setInputValue('gamma-slider', video.gamma);
+  setInputValue('slit-scan-width-slider', video.slitScanWidth);
+  setInputValue('slit-scan-speed-slider', video.slitScanSpeed);
+  setInputValue('datamosh-intensity-slider', video.datamoshIntensity);
+  setInputValue('datamosh-persistence-slider', video.datamoshPersistence);
+  setInputValue('warp-strength-slider', video.warpStrength);
+  setInputValue('warp-scale-slider', video.warpScale);
+  setInputValue('warp-speed-slider', video.warpSpeed);
+  setInputValue('heat-amplitude-slider', video.heatAmplitude);
+  setInputValue('heat-frequency-slider', video.heatFrequency);
+  setInputValue('heat-speed-slider', video.heatSpeed);
+  setInputValue('echo-frames-slider', video.echoFrames);
+  setInputValue('echo-decay-slider', video.echoDecay);
+  setInputValue('pixel-sort-threshold-slider', video.pixelSortThreshold);
+  setInputValue('scan-collapse-strength-slider', video.scanCollapseStrength);
+  setInputValue('block-size-slider', video.blockSize);
+  setInputValue('shuffle-amount-slider', video.shuffleAmount);
+  setInputValue('crt-warp-slider', video.crtWarp);
+  setInputValue('crt-scanlines-slider', video.crtScanlines);
+  setInputValue('crt-glow-slider', video.crtGlow);
+  setInputValue('temporal-noise-slider', video.temporalNoise);
+  setInputValue('frame-mix-slider', video.frameMix);
+  setInputValue('motion-smear-slider', video.motionSmear);
+  setInputValue('feedback-scale-slider', video.feedbackScale);
+  setInputValue('feedback-opacity-slider', video.feedbackOpacity);
+  setInputValue('edge-glow-slider', video.edgeGlow);
+  setInputValue('edge-threshold-slider', video.edgeThreshold);
+  setInputValue('noise-displace-slider', video.noiseDisplace);
+  setInputValue('noise-speed-slider', video.noiseSpeed);
+  setInputValue('rgb-shift-r-slider', video.rgbShiftR);
+  setInputValue('rgb-shift-g-slider', video.rgbShiftG);
+  setInputValue('rgb-shift-b-slider', video.rgbShiftB);
+  setInputValue('scanline-intensity-slider', video.scanlineIntensity);
+
+  setInputValue('blur-slider', tracking.blur);
+  setInputValue('min-size-slider', tracking.minSize);
+  setInputValue('max-size-slider', tracking.maxSize);
+  setInputValue('sensitivity-slider', tracking.sensitivity);
+  document.getElementById('show-boxes').checked = tracking.showBoxes;
+  document.getElementById('show-centers').checked = tracking.showCenters;
+  document.getElementById('show-trails').checked = tracking.showTrails;
+  document.getElementById('show-coords').checked = tracking.showCoords;
+  document.getElementById('show-matte-blob').checked = tracking.showMatteBlob;
+  setInputValue('line-thickness-slider', tracking.lineThickness);
+  document.getElementById('fx-negative').checked = tracking.fxNegative;
+  document.getElementById('fx-blur').checked = tracking.fxBlur;
+  setBlobColor(tracking.blobColor);
+  setLineColor(tracking.lineColor);
+  updateVideoFilters();
   updateConfig();
 }
 
@@ -584,6 +715,42 @@ function toggleColorScience() {
     indicator.classList.remove('scale-125');
     indicator.classList.replace('bg-pink-500', 'bg-pink-900');
   }
+}
+
+function setInputValue(id, value) {
+  const input = document.getElementById(id);
+  if (input) input.value = value;
+}
+
+function setPanelExpanded(panelId, expanded, iconId) {
+  const panel = document.getElementById(panelId);
+  const icon = document.getElementById(iconId);
+  if (!panel) return;
+  panel.classList.toggle('collapsed', !expanded);
+  if (icon) {
+    icon.innerHTML = expanded ? ICONS.chevronDown : ICONS.chevronRight;
+  }
+}
+
+function setSimpleTogglePanel(panelId, expanded, iconId) {
+  const panel = document.getElementById(panelId);
+  const icon = document.getElementById(iconId);
+  if (!panel) return;
+  panel.classList.toggle('hidden', !expanded);
+  if (icon) {
+    icon.innerHTML = expanded ? ICONS.chevronDown : ICONS.chevronRight;
+  }
+}
+
+function setIndicatorPanelState(panelId, indicatorId, expanded) {
+  const panel = document.getElementById(panelId);
+  const indicator = document.getElementById(indicatorId);
+  if (!panel || !indicator) return;
+  panel.classList.toggle('hidden', !expanded);
+  indicator.classList.toggle('scale-75', !expanded);
+  indicator.classList.toggle('scale-125', expanded);
+  indicator.classList.toggle('bg-pink-900', !expanded);
+  indicator.classList.toggle('bg-pink-500', expanded);
 }
 
 function toggleMatteBlobPanel() {
