@@ -578,12 +578,12 @@ function resetAllSettings() {
   document.getElementById('min-size-slider').value = 4;
   document.getElementById('max-size-slider').value = 7000;
   document.getElementById('sensitivity-slider').value = 360;
-  document.getElementById('show-boxes').checked = true;
-  document.getElementById('show-centers').checked = true;
-  document.getElementById('show-trails').checked = true;
-  document.getElementById('show-coords').checked = true;
+  document.getElementById('show-boxes').checked = false;
+  document.getElementById('show-centers').checked = false;
+  document.getElementById('show-trails').checked = false;
+  document.getElementById('show-coords').checked = false;
   document.getElementById('show-matte-blob').checked = false;
-  document.getElementById('matte-adaptive').checked = true;
+  document.getElementById('matte-adaptive').checked = false;
   document.getElementById('matte-video-opacity-slider').value = 35;
   document.getElementById('matte-generation-slider').value = 3;
   document.getElementById('matte-density-slider').value = 7;
@@ -845,6 +845,7 @@ function initializeIcons() {
   document.getElementById('fx-presets-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('record-icon').innerHTML = ICONS.camera;
+  setPanelExpanded('left-fx-panel', false, 'fx-presets-toggle-icon');
   setBlobColor('#ffffff');
   setLineColor('#ffffff');
   syncMatteBlobControls();
