@@ -17,6 +17,7 @@ class BlobTracker {
       echoHistory: []
     };
     this.requestRef = null;
+    this.lastProcessTimestamp = null;
     this.isPlaying = false;
     this.isCvLoaded = false;
     this.config = {
@@ -69,6 +70,10 @@ class BlobTracker {
       rgbShift: { r: 0, g: 0, b: 0 },
       scanlineIntensity: 0.3
     };
+    this.optimization = {
+      fpsCap: 30,
+      qualityScale: 0.72
+    };
     this.videoElement = null;
     this.canvasElement = null;
     this.overlayElement = null;
@@ -106,7 +111,8 @@ class BlobTracker {
     if (!vw || !vh) return null;
     const maxWidth = 1920;
     const maxHeight = 1080;
-    const scale = Math.min(1, maxWidth / vw, maxHeight / vh);
+    const qualityScale = Math.min(1, Math.max(0.1, this.optimization.qualityScale || 1));
+    const scale = Math.min(1, maxWidth / vw, maxHeight / vh) * qualityScale;
     return {
       width: Math.max(1, Math.round(vw * scale)),
       height: Math.max(1, Math.round(vh * scale))
@@ -121,8 +127,13 @@ class BlobTracker {
     this.videoFilters = { ...this.videoFilters, ...newFilters };
   }
 
+  updateOptimization(newOptimization) {
+    this.optimization = { ...this.optimization, ...newOptimization };
+  }
+
   startTracking() {
     this.isPlaying = true;
+    this.lastProcessTimestamp = null;
     this.setupAudioAnalyser();
     if (this.audioContext?.state === 'suspended') {
       this.audioContext.resume().catch(() => {});
@@ -160,7 +171,7 @@ class BlobTracker {
     oCtx.clearRect(0, 0, overlay.width, overlay.height);
   }
 
-  processFrame = () => {
+  processFrame = (timestamp = performance.now()) => {
     if (!this.videoElement || !this.canvasElement || !this.overlayElement || !this.isCvLoaded) return;
     const cv = window.cv;
     const video = this.videoElement;
@@ -170,6 +181,14 @@ class BlobTracker {
     const oCtx = overlay.getContext('2d');
 
     if (!ctx || !oCtx || video.paused || video.ended) return;
+    const fpsCap = Math.max(1, this.optimization.fpsCap || 30);
+    const frameInterval = 1000 / fpsCap;
+    if (this.lastProcessTimestamp !== null && (timestamp - this.lastProcessTimestamp) < frameInterval) {
+      this.requestRef = requestAnimationFrame(this.processFrame);
+      return;
+    }
+    const elapsed = this.lastProcessTimestamp === null ? frameInterval : Math.max(timestamp - this.lastProcessTimestamp, 1);
+    this.lastProcessTimestamp = timestamp;
     this.updateAudioLevel();
 
     // Match canvas size to video
@@ -304,7 +323,7 @@ class BlobTracker {
 
     this.processingRef.activeBlobs = nextBlobs;
     this.blobs = nextBlobs;
-    this.stats = { fps: Math.round(1000 / 33), blobCount: nextBlobs.length };
+    this.stats = { fps: Math.round(1000 / elapsed), blobCount: nextBlobs.length };
 
     this.processingRef.frameCount++;
 
@@ -324,7 +343,7 @@ class BlobTracker {
     M.delete();
 
     if (this.isPlaying) {
-      this.requestRef = requestAnimationFrame(this.processFrame);
+    this.requestRef = requestAnimationFrame(this.processFrame);
     }
   }
 
@@ -766,13 +785,16 @@ class BlobTracker {
     if (!this.overlayElement || !this.canvasElement) return;
     this.processingRef.recordedChunks = [];
     const recordCanvas = document.createElement('canvas');
-    recordCanvas.width = 1280;
-    recordCanvas.height = 720;
+    const qualityScale = Math.min(1, Math.max(0.1, this.optimization.qualityScale || 1));
+    recordCanvas.width = Math.max(320, Math.round(1280 * qualityScale));
+    recordCanvas.height = Math.max(180, Math.round(720 * qualityScale));
     const rCtx = recordCanvas.getContext('2d');
-    const stream = recordCanvas.captureStream(30);
+    const fpsCap = Math.max(1, this.optimization.fpsCap || 30);
+    const stream = recordCanvas.captureStream(fpsCap);
+    const bitrate = Math.max(800_000, Math.round(5_000_000 * qualityScale));
     const recorder = new MediaRecorder(stream, {
       mimeType: 'video/webm',
-      videoBitsPerSecond: 5_000_000
+      videoBitsPerSecond: bitrate
     });
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) this.processingRef.recordedChunks.push(e.data);

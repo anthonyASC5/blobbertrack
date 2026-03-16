@@ -100,6 +100,8 @@ function setupEventListeners() {
   document.getElementById('saturation-slider').addEventListener('input', updateVideoFilters);
   MORE_FILTER_IDS.forEach(id => document.getElementById(id).addEventListener('input', updateVideoFilters));
   document.getElementById('reset-video-filters').addEventListener('click', resetVideoFilters);
+  document.getElementById('fps-cap-select').addEventListener('change', updateOptimizationSettings);
+  document.getElementById('quality-select').addEventListener('change', updateOptimizationSettings);
 
   // Detection controls
   document.getElementById('blur-slider').addEventListener('input', updateConfig);
@@ -177,6 +179,8 @@ function setupEventListeners() {
 
   // Global keyboard controls
   document.addEventListener('keydown', handleGlobalKeydown);
+
+  updateOptimizationSettings();
 }
 
 // Event handlers
@@ -373,6 +377,15 @@ function resetVideoFilters() {
   document.getElementById('rgb-shift-b-slider').value = 0;
   document.getElementById('scanline-intensity-slider').value = 30;
   updateVideoFilters();
+}
+
+function updateOptimizationSettings() {
+  const fpsCap = parseInt(document.getElementById('fps-cap-select').value, 10);
+  const qualityScale = parseFloat(document.getElementById('quality-select').value);
+  blobTracker.updateOptimization({
+    fpsCap,
+    qualityScale
+  });
 }
 
 function updateConfig() {

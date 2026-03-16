@@ -153,6 +153,33 @@
                         <input type="range" id="saturation-slider" min="0" max="200" value="100" class="w-full">
                     </div>
                     <button id="reset-video-filters" class="w-full py-2 text-[9px] mono uppercase tracking-widest transition-colors bg-white text-black hover:bg-white/90">Reset</button>
+                    <div class="optimization-panel">
+                        <div class="optimization-header">
+                            <span class="optimization-title mono">Optimization</span>
+                            <span class="optimization-copy">Tune preview performance and recording output.</span>
+                        </div>
+                        <div class="optimization-grid">
+                            <label class="optimization-field">
+                                <span class="optimization-label mono">FPS Cap</span>
+                                <select id="fps-cap-select" class="optimization-select mono">
+                                    <option value="60">60 FPS</option>
+                                    <option value="40">40 FPS</option>
+                                    <option value="30" selected>30 FPS</option>
+                                    <option value="15">15 FPS</option>
+                                </select>
+                            </label>
+                            <label class="optimization-field">
+                                <span class="optimization-label mono">Quality</span>
+                                <select id="quality-select" class="optimization-select mono">
+                                    <option value="0.10">Micro 10%</option>
+                                    <option value="0.30">Low 30%</option>
+                                    <option value="0.55">Performance 55%</option>
+                                    <option value="0.72" selected>Balanced 72%</option>
+                                    <option value="1">Quality 100%</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
 
                     <div class="dither-machine more-tab">
                         <button id="more-tab-toggle" class="dither-machine-header">
