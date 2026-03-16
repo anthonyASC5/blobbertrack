@@ -21,20 +21,15 @@ const MORE_FILTER_IDS = [
   'edge-detect-slider',
   'scanline-thickness-slider',
   'gamma-slider',
-  'slit-scan-speed-slider',
-  'heat-amplitude-slider',
   'heat-speed-slider',
-  'echo-frames-slider',
   'echo-decay-slider',
   'pixel-sort-threshold-slider',
   'scan-collapse-strength-slider',
-  'shuffle-amount-slider',
   'crt-scanlines-slider',
   'crt-glow-slider',
   'edge-glow-slider',
   'edge-threshold-slider',
   'noise-displace-slider',
-  'noise-speed-slider',
   'rgb-shift-r-slider',
   'rgb-shift-g-slider',
   'rgb-shift-b-slider',
@@ -67,7 +62,6 @@ function mountVHSPanel() {
 function setupEventListeners() {
   // Video upload
   document.getElementById('video-upload').addEventListener('change', handleFileUpload);
-  document.getElementById('reset-all-btn').addEventListener('click', resetAllSettings);
   document.getElementById('upload-zone').addEventListener('click', () => {
     document.getElementById('video-upload').click();
   });
@@ -94,6 +88,7 @@ function setupEventListeners() {
 
   // Module controls
   document.getElementById('video-editor-toggle').addEventListener('click', toggleVideoEditor);
+  document.getElementById('more-hud-toggle').addEventListener('click', toggleMoreHUD);
   document.getElementById('fx-presets-toggle').addEventListener('click', toggleFxPresetsPanel);
   document.getElementById('matte-blob-toggle').addEventListener('click', toggleMatteBlobPanel);
   document.getElementById('blob-params-toggle').addEventListener('click', toggleBlobParamsPanel);
@@ -176,7 +171,6 @@ function setupEventListeners() {
   });
 
   // Mobile panel toggles
-  document.getElementById('mobile-inspector-toggle').addEventListener('click', toggleInspector);
   document.getElementById('mobile-hud-toggle').addEventListener('click', toggleHUDMobile);
   document.getElementById('mobile-hud-drawer-toggle').addEventListener('click', toggleHUDMobile);
   window.addEventListener('resize', syncResponsiveLayout);
@@ -290,9 +284,14 @@ function toggleFxPresetsPanel() {
   icon.innerHTML = isCollapsed ? ICONS.chevronRight : ICONS.chevronDown;
 }
 
-function toggleInspector() {
-  const panel = document.querySelector('.inspector-panel');
-  panel.classList.toggle('inspector-visible');
+function toggleMoreHUD() {
+  const panel = document.getElementById('more-hud-panel');
+  const icon = document.getElementById('more-hud-toggle-icon');
+  if (!panel) return;
+  const isCollapsed = panel.classList.toggle('collapsed');
+  if (icon) {
+    icon.innerHTML = isCollapsed ? ICONS.chevronRight : ICONS.chevronDown;
+  }
 }
 
 function toggleHUDMobile() {
@@ -328,20 +327,20 @@ function updateVideoFilters() {
     edgeDetect: parseInt(document.getElementById('edge-detect-slider').value) / 100,
     scanlineThickness: parseInt(document.getElementById('scanline-thickness-slider').value),
     gamma: gammaRaw === 0 ? 1 : (gammaRaw / 100),
-    slitScanSpeed: parseInt(document.getElementById('slit-scan-speed-slider').value),
-    heatAmplitude: parseInt(document.getElementById('heat-amplitude-slider').value),
+    slitScanSpeed: 0,
+    heatAmplitude: 0,
     heatSpeed: parseInt(document.getElementById('heat-speed-slider').value) / 100,
-    echoFrames: parseInt(document.getElementById('echo-frames-slider').value),
+    echoFrames: 1,
     echoDecay: parseInt(document.getElementById('echo-decay-slider').value) / 100,
     pixelSortThreshold: parseInt(document.getElementById('pixel-sort-threshold-slider').value),
     scanCollapseStrength: parseInt(document.getElementById('scan-collapse-strength-slider').value),
-    shuffleAmount: parseInt(document.getElementById('shuffle-amount-slider').value) / 100,
+    shuffleAmount: 0,
     crtScanlines: parseInt(document.getElementById('crt-scanlines-slider').value) / 100,
     crtGlow: parseInt(document.getElementById('crt-glow-slider').value) / 100,
     edgeGlow: parseInt(document.getElementById('edge-glow-slider').value) / 100,
     edgeThreshold: parseInt(document.getElementById('edge-threshold-slider').value),
     noiseDisplace: parseInt(document.getElementById('noise-displace-slider').value),
-    noiseSpeed: parseInt(document.getElementById('noise-speed-slider').value) / 100,
+    noiseSpeed: 1,
     rgbShift: {
       r: parseInt(document.getElementById('rgb-shift-r-slider').value),
       g: parseInt(document.getElementById('rgb-shift-g-slider').value),
@@ -360,64 +359,20 @@ function resetVideoFilters() {
   document.getElementById('edge-detect-slider').value = 0;
   document.getElementById('scanline-thickness-slider').value = 0;
   document.getElementById('gamma-slider').value = 100;
-  document.getElementById('slit-scan-speed-slider').value = 0;
-  document.getElementById('heat-amplitude-slider').value = 0;
   document.getElementById('heat-speed-slider').value = 200;
-  document.getElementById('echo-frames-slider').value = 1;
   document.getElementById('echo-decay-slider').value = 70;
   document.getElementById('pixel-sort-threshold-slider').value = 0;
   document.getElementById('scan-collapse-strength-slider').value = 0;
-  document.getElementById('shuffle-amount-slider').value = 0;
   document.getElementById('crt-scanlines-slider').value = 0;
   document.getElementById('crt-glow-slider').value = 0;
   document.getElementById('edge-glow-slider').value = 0;
   document.getElementById('edge-threshold-slider').value = 50;
   document.getElementById('noise-displace-slider').value = 0;
-  document.getElementById('noise-speed-slider').value = 100;
   document.getElementById('rgb-shift-r-slider').value = 0;
   document.getElementById('rgb-shift-g-slider').value = 0;
   document.getElementById('rgb-shift-b-slider').value = 0;
   document.getElementById('scanline-intensity-slider').value = 30;
   updateVideoFilters();
-}
-
-function resetAllSettings() {
-  blobTracker.clearHiddenBlobs();
-  resetVideoFilters();
-  document.getElementById('blur-slider').value = 3;
-  document.getElementById('min-size-slider').value = 4;
-  document.getElementById('max-size-slider').value = 7000;
-  document.getElementById('sensitivity-slider').value = 360;
-  document.getElementById('show-boxes').checked = true;
-  document.getElementById('show-centers').checked = true;
-  document.getElementById('show-trails').checked = true;
-  document.getElementById('show-coords').checked = true;
-  document.getElementById('show-matte-blob').checked = false;
-  document.getElementById('matte-video-opacity-slider').value = 35;
-  document.getElementById('matte-generation-slider').value = 3;
-  document.getElementById('matte-density-slider').value = 7;
-  document.getElementById('matte-radius-slider').value = 92;
-  document.getElementById('matte-size-slider').value = 105;
-  document.getElementById('matte-vertical-slider').value = 80;
-  document.getElementById('matte-persistence-slider').value = 14;
-  document.getElementById('trail-hue-slider').value = 0;
-  document.getElementById('line-thickness-slider').value = 1;
-  document.getElementById('fx-negative').checked = false;
-  document.getElementById('fx-blur').checked = false;
-  document.getElementById('fx-magnifier-link').checked = false;
-  setBlobColor('#ffffff');
-  setLineColor('#ffffff');
-  setPanelExpanded('video-editor-panel', false, 'video-editor-toggle-icon');
-  setPanelExpanded('left-fx-panel', false, 'fx-presets-toggle-icon');
-  setSimpleTogglePanel('more-tab-content', false, 'more-tab-toggle-icon');
-  setSimpleTogglePanel('blob-params-panel', true, 'blob-params-toggle-icon');
-  setIndicatorPanelState('color-science-panel', 'color-science-indicator', false);
-  setIndicatorPanelState('matte-blob-panel', 'matte-blob-indicator', false);
-  document.querySelector('.inspector-panel')?.classList.remove('vhs-focus');
-  document.getElementById('app-shell').classList.remove('mobile-hud-open');
-  setHUDToggleState(false);
-  syncMatteBlobControls();
-  updateConfig();
 }
 
 function updateConfig() {
@@ -512,12 +467,12 @@ function toggleMatteBlobPanel() {
 }
 
 function toggleMoreTab() {
-  const inspector = document.querySelector('.inspector-panel');
+  const moreHUD = document.getElementById('more-hud-panel');
   const panel = document.getElementById('more-tab-content');
   const icon = document.getElementById('more-tab-toggle-icon');
   panel.classList.toggle('hidden');
   const isOpen = !panel.classList.contains('hidden');
-  inspector?.classList.toggle('vhs-focus', isOpen);
+  moreHUD?.classList.toggle('vhs-focus', isOpen);
   icon.innerHTML = isOpen ? ICONS.chevronDown : ICONS.chevronRight;
 }
 
@@ -581,6 +536,7 @@ function initializeIcons() {
   document.getElementById('nav-forward-icon').innerHTML = ICONS.forward;
   document.getElementById('nav-restart-icon').innerHTML = ICONS.restart;
   document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
+  document.getElementById('more-hud-toggle-icon').innerHTML = ICONS.chevronDown;
   document.getElementById('fx-presets-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('blob-params-toggle-icon').innerHTML = ICONS.chevronDown;
   document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;

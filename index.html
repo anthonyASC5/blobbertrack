@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body id="app-shell" class="bg-slate-50 text-slate-900 font-sans">
+<body id="app-shell" class="pink-code-ui bg-slate-50 text-slate-900 font-sans">
     <!-- Top Bar -->
     <header id="top-bar" class="h-14 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 bg-white shadow-sm relative">
         <div class="flex items-center gap-3 z-10">
@@ -45,12 +45,6 @@
         <h1 id="nav-title" class="absolute left-1/2 -translate-x-1/2 text-3xl tracking-widest uppercase">BLOBBER TRACK</h1>
 
         <div class="flex items-center gap-2 z-10">
-            <button id="mobile-inspector-toggle" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn">
-                <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
-                    <circle cx="8" cy="8" r="5.5"></circle>
-                    <circle cx="8" cy="8" r="2"></circle>
-                </svg>
-            </button>
             <button id="mobile-hud-toggle" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn" aria-expanded="false" aria-controls="right-column">
                 <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
                     <circle cx="8" cy="8" r="2.5"></circle>
@@ -64,8 +58,6 @@
                 Upload
                 <input type="file" id="video-upload" accept="video/*" class="hidden">
             </label>
-            <button id="reset-all-btn" class="px-3 py-1.5 rounded-sm bg-pink-500 text-white hover:bg-pink-400 transition-colors text-[10px] mono uppercase tracking-wider">Reset</button>
-
             <button id="info-btn" class="w-6 h-6 rounded-full border border-slate-900 bg-white text-slate-900 flex items-center justify-center text-[14px] mono hover:bg-slate-50 transition-colors">
                 i
             </button>
@@ -86,106 +78,6 @@
 
     <!-- Main Content -->
     <main id="app-main" class="overflow-hidden relative">
-        <!-- Left Panel - Inspector & Majin Boo -->
-        <aside class="inspector-panel w-48 border-r border-slate-200 flex flex-col shrink-0 bg-black text-white min-h-0">
-            <div id="left-slime-panel" class="h-44 border-b border-white/10 bg-black flex flex-col overflow-hidden">
-                <div class="p-3 border-b border-white/5 flex items-center gap-2">
-                    <svg class="ui-icon text-pink-400" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d="M8 1.5l4.5 4.5L8 10.5 3.5 6 8 1.5z"></path>
-                    </svg>
-                    <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Majin_Buu_Goo.sys</span>
-                </div>
-                <div class="flex-1 flex items-center justify-center relative overflow-hidden bg-white/5">
-                    <canvas id="goo-canvas" class="w-full h-full"></canvas>
-                    <div class="absolute bottom-2 left-3 text-[8px] mono text-pink-400/60 uppercase tracking-tighter">
-                        Happy_Slime_v4.0
-                    </div>
-                </div>
-            </div>
-
-            <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
-                <div id="vhs-slot" class="p-2"></div>
-            </div>
-
-            <div id="left-fx-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden fx-hud collapsed">
-                <button id="fx-presets-toggle" class="p-3 border-b border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10">
-                    <div class="flex items-center gap-2">
-                        <svg class="ui-icon text-pink-300" viewBox="0 0 16 16" aria-hidden="true">
-                            <path d="M2.5 8h11M8 2.5v11"></path>
-                        </svg>
-                        <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Presets</span>
-                    </div>
-                    <span id="fx-presets-toggle-icon" class="icon-slot text-pink-300"></span>
-                </button>
-                <div id="fx-presets-content" class="fx-presets-body">
-                    <label class="preset-switch-row">
-                        <span class="preset-label mono">Negative</span>
-                        <span class="preset-switch">
-                            <input type="checkbox" id="fx-negative">
-                            <span class="preset-slider" aria-hidden="true"></span>
-                        </span>
-                    </label>
-                    <label class="preset-switch-row">
-                        <span class="preset-label mono">Blur Glow In Blob</span>
-                        <span class="preset-switch">
-                            <input type="checkbox" id="fx-blur">
-                            <span class="preset-slider" aria-hidden="true"></span>
-                        </span>
-                    </label>
-                    <label class="preset-switch-row">
-                        <span class="preset-label mono">Magnify Link Blob</span>
-                        <span class="preset-switch">
-                            <input type="checkbox" id="fx-magnifier-link">
-                            <span class="preset-slider" aria-hidden="true"></span>
-                        </span>
-                    </label>
-                </div>
-            </div>
-
-            <div id="left-blob-panel" class="flex flex-col overflow-hidden min-h-0 border-b border-white/10">
-                <div class="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">
-                    <div class="flex items-center gap-2">
-                        <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
-                            <circle cx="8" cy="8" r="5.5"></circle>
-                            <circle cx="8" cy="8" r="2"></circle>
-                        </svg>
-                        <span class="text-[9px] mono uppercase tracking-widest font-bold text-white/60">Blob Inspector</span>
-                    </div>
-                    <span id="active-blobs" class="text-[9px] mono text-white/20">0 ACTIVE</span>
-                </div>
-
-                <div id="blob-list" class="h-40 overflow-hidden p-2 space-y-1.5 min-h-0">
-                    <div class="h-full flex items-center justify-center opacity-20">
-                        <p class="text-[10px] mono uppercase tracking-widest text-white/40">No data stream</p>
-                    </div>
-                </div>
-            </div>
-            <div id="left-contact-panel" class="p-2 border-t border-pink-500/40 bg-pink-500/10 space-y-1">
-                <div class="text-[8px] mono uppercase tracking-[0.16em] text-pink-300 text-center">BY A. LALL // MARCH 2026</div>
-                <div class="text-[8px] mono text-pink-100 break-all text-center">all266@cornell.edu</div>
-                <div class="text-[8px] mono text-pink-100 break-all text-center">Built with React + TSX + CDX5.4</div>
-                <div class="text-[8px] mono text-pink-200 text-center">
-                    <a href="https://www.youtube.com/@shotbyall" target="_blank" rel="noopener noreferrer" class="underline text-pink-100">shotbyall</a>
-                </div>
-            </div>
-            <div id="left-debug-panel" class="p-3 border-t border-white/10 bg-black/80">
-                <div class="text-[9px] mono uppercase tracking-widest text-white/50 mb-2">Debug Console</div>
-                <div class="mb-2 text-[9px] mono uppercase tracking-widest text-emerald-300/80 space-y-1">
-                    <div id="fps-display">FPS: 0</div>
-                    <div id="blob-count-display">BLOBS: 0</div>
-                    <div id="status-display">STATUS: LOADING CV...</div>
-                </div>
-                <div id="debug-console" class="h-20 overflow-y-auto text-[8px] mono text-emerald-300/80 bg-black border border-white/10 p-2 space-y-1"></div>
-                <button id="test-mode-btn" class="mt-2 w-full flex items-center justify-center gap-2 px-2 py-1.5 bg-black border border-emerald-500/40 hover:bg-emerald-950/40 transition-all group hidden">
-                    <svg class="ui-icon text-emerald-400 group-hover:animate-pulse" viewBox="0 0 16 16" aria-hidden="true">
-                        <rect x="2.5" y="5" width="11" height="6" rx="1.5"></rect>
-                        <path d="M6 8H4m1-1v2m4-1h2"></path>
-                    </svg>
-                    <span class="text-[9px] font-black text-emerald-400 tracking-tighter uppercase">Test Mode</span>
-                </button>
-            </div>
-        </aside>
-
         <!-- Center - Video Preview -->
         <section class="flex-1 relative bg-black flex items-center justify-center overflow-hidden group min-h-0" id="video-section">
             <div id="upload-zone" class="text-center space-y-4 cursor-pointer hover:bg-white/5 p-12 rounded-2xl transition-all border border-dashed border-white/10 group/upload">
@@ -228,6 +120,7 @@
                 <span class="drawer-title mono">Control Dock</span>
             </button>
             <div id="control-column" class="flex flex-col w-full h-full min-h-0">
+            <div id="primary-hud-column" class="flex flex-col min-h-0 flex-1">
             <!-- Video Editor Panel -->
             <aside id="video-editor-panel" class="module-panel collapsed flex flex-col border-b border-pink-500/20 bg-pink-500/5 text-white relative z-10 min-h-0">
                 <div class="p-4 border-b border-pink-500/20 flex items-center justify-between bg-pink-500/10">
@@ -281,36 +174,20 @@
                                     <input type="range" id="gamma-slider" min="50" max="300" value="100" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Slit Scan Speed</label>
-                                    <input type="range" id="slit-scan-speed-slider" min="0" max="8" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Heat Amplitude</label>
-                                    <input type="range" id="heat-amplitude-slider" min="0" max="30" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Heat Speed</label>
                                     <input type="range" id="heat-speed-slider" min="0" max="400" value="200" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Echo Frames</label>
-                                    <input type="range" id="echo-frames-slider" min="1" max="12" value="1" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Echo Decay</label>
                                     <input type="range" id="echo-decay-slider" min="0" max="100" value="70" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Pixel Sort Threshold</label>
+                                    <label class="text-[9px] mono uppercase tracking-widest text-emerald-300">Pixel Sort Threshold</label>
                                     <input type="range" id="pixel-sort-threshold-slider" min="0" max="255" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Scan Collapse Strength</label>
+                                    <label class="text-[9px] mono uppercase tracking-widest text-emerald-300">Scan Collapse</label>
                                     <input type="range" id="scan-collapse-strength-slider" min="0" max="40" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Shuffle Amount</label>
-                                    <input type="range" id="shuffle-amount-slider" min="0" max="100" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">CRT Scanlines</label>
@@ -321,7 +198,7 @@
                                     <input type="range" id="crt-glow-slider" min="0" max="100" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Edge Glow</label>
+                                    <label class="text-[9px] mono uppercase tracking-widest text-emerald-300">Edge Glow</label>
                                     <input type="range" id="edge-glow-slider" min="0" max="100" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
@@ -331,10 +208,6 @@
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Noise Displace</label>
                                     <input type="range" id="noise-displace-slider" min="0" max="30" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Noise Speed</label>
-                                    <input type="range" id="noise-speed-slider" min="0" max="300" value="100" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Scanline Intensity</label>
@@ -532,6 +405,117 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </aside>
+            </div>
+
+            <aside id="more-hud-panel" class="more-hud-panel flex flex-col shrink-0 min-h-0 border-l border-pink-500/20 bg-black text-white">
+                <button id="more-hud-toggle" class="more-hud-toggle p-3 border-b border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10">
+                    <div class="flex items-center gap-2">
+                        <svg class="ui-icon text-pink-300" viewBox="0 0 16 16" aria-hidden="true">
+                            <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"></path>
+                        </svg>
+                        <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">More HUD</span>
+                    </div>
+                    <span id="more-hud-toggle-icon" class="icon-slot text-pink-300"></span>
+                </button>
+                <div id="more-hud-content" class="more-hud-content flex-1 min-h-0 overflow-y-auto">
+                    <div id="left-slime-panel" class="h-44 border-b border-white/10 bg-black flex flex-col overflow-hidden">
+                        <div class="p-3 border-b border-white/5 flex items-center gap-2">
+                            <svg class="ui-icon text-pink-400" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M8 1.5l4.5 4.5L8 10.5 3.5 6 8 1.5z"></path>
+                            </svg>
+                            <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Majin_Buu_Goo.sys</span>
+                        </div>
+                        <div class="flex-1 flex items-center justify-center relative overflow-hidden bg-white/5">
+                            <canvas id="goo-canvas" class="w-full h-full"></canvas>
+                            <div class="absolute bottom-2 left-3 text-[8px] mono text-pink-400/60 uppercase tracking-tighter">
+                                Happy_Slime_v4.0
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
+                        <div id="vhs-slot" class="p-2"></div>
+                    </div>
+
+                    <div id="left-fx-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden fx-hud collapsed">
+                        <button id="fx-presets-toggle" class="p-3 border-b border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10">
+                            <div class="flex items-center gap-2">
+                                <svg class="ui-icon text-pink-300" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M2.5 8h11M8 2.5v11"></path>
+                                </svg>
+                                <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Presets</span>
+                            </div>
+                            <span id="fx-presets-toggle-icon" class="icon-slot text-pink-300"></span>
+                        </button>
+                        <div id="fx-presets-content" class="fx-presets-body">
+                            <label class="preset-switch-row">
+                                <span class="preset-label mono">Negative</span>
+                                <span class="preset-switch">
+                                    <input type="checkbox" id="fx-negative">
+                                    <span class="preset-slider" aria-hidden="true"></span>
+                                </span>
+                            </label>
+                            <label class="preset-switch-row">
+                                <span class="preset-label mono">Blur Glow In Blob</span>
+                                <span class="preset-switch">
+                                    <input type="checkbox" id="fx-blur">
+                                    <span class="preset-slider" aria-hidden="true"></span>
+                                </span>
+                            </label>
+                            <label class="preset-switch-row">
+                                <span class="preset-label mono">Magnify Link Blob</span>
+                                <span class="preset-switch">
+                                    <input type="checkbox" id="fx-magnifier-link">
+                                    <span class="preset-slider" aria-hidden="true"></span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="left-blob-panel" class="flex flex-col overflow-hidden min-h-0 border-b border-white/10">
+                        <div class="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">
+                            <div class="flex items-center gap-2">
+                                <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
+                                    <circle cx="8" cy="8" r="5.5"></circle>
+                                    <circle cx="8" cy="8" r="2"></circle>
+                                </svg>
+                                <span class="text-[9px] mono uppercase tracking-widest font-bold text-white/60">Blob Inspector</span>
+                            </div>
+                            <span id="active-blobs" class="text-[9px] mono text-white/20">0 ACTIVE</span>
+                        </div>
+
+                        <div id="blob-list" class="h-40 overflow-hidden p-2 space-y-1.5 min-h-0">
+                            <div class="h-full flex items-center justify-center opacity-20">
+                                <p class="text-[10px] mono uppercase tracking-widest text-white/40">No data stream</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="left-contact-panel" class="p-2 border-t border-pink-500/40 bg-pink-500/10 space-y-1">
+                        <div class="text-[8px] mono uppercase tracking-[0.16em] text-pink-300 text-center">BY A. LALL // MARCH 2026</div>
+                        <div class="text-[8px] mono text-pink-100 break-all text-center">all266@cornell.edu</div>
+                        <div class="text-[8px] mono text-pink-100 break-all text-center">Built with React + TSX + CDX5.4</div>
+                        <div class="text-[8px] mono text-pink-200 text-center">
+                            <a href="https://www.youtube.com/@shotbyall" target="_blank" rel="noopener noreferrer" class="underline text-pink-100">shotbyall</a>
+                        </div>
+                    </div>
+                    <div id="left-debug-panel" class="p-3 border-t border-white/10 bg-black/80">
+                        <div class="text-[9px] mono uppercase tracking-widest text-white/50 mb-2">Debug Console</div>
+                        <div class="mb-2 text-[9px] mono uppercase tracking-widest text-emerald-300/80 space-y-1">
+                            <div id="fps-display">FPS: 0</div>
+                            <div id="blob-count-display">BLOBS: 0</div>
+                            <div id="status-display">STATUS: LOADING CV...</div>
+                        </div>
+                        <div id="debug-console" class="h-20 overflow-y-auto text-[8px] mono text-emerald-300/80 bg-black border border-white/10 p-2 space-y-1"></div>
+                        <button id="test-mode-btn" class="mt-2 w-full flex items-center justify-center gap-2 px-2 py-1.5 bg-black border border-emerald-500/40 hover:bg-emerald-950/40 transition-all group hidden">
+                            <svg class="ui-icon text-emerald-400 group-hover:animate-pulse" viewBox="0 0 16 16" aria-hidden="true">
+                                <rect x="2.5" y="5" width="11" height="6" rx="1.5"></rect>
+                                <path d="M6 8H4m1-1v2m4-1h2"></path>
+                            </svg>
+                            <span class="text-[9px] font-black text-emerald-400 tracking-tighter uppercase">Test Mode</span>
+                        </button>
                     </div>
                 </div>
             </aside>
