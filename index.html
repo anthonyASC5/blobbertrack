@@ -3,7 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blob Tracker</title>
+    <title>BlobberTrack | Free Online Blob Tracker No Download</title>
+   
+    <!-- metadata -->
+    <meta name="description" content="BlobberTrack is a free online blob tracker with no download required. Upload video, detect blobs, inspect motion, and use a browser-based blob tracker workflow instantly.">
+    <meta name="keywords" content="blob tracker, free blob tracker online no download, blobbertrack tracker, online blob tracker, free blob tracker, browser blob tracker, video blob tracking, motion blob tracker, blob detection tool, blob tracker web app">
+    <meta name="robots" content="index, follow">
+    <meta name="application-name" content="BlobberTrack">
+    <meta property="og:title" content="BlobberTrack | Free Online Blob Tracker No Download">
+    <meta property="og:description" content="Free online blob tracker with no download. BlobberTrack lets you upload video, track blobs, and inspect motion directly in your browser.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="BlobberTrack">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="BlobberTrack | Free Online Blob Tracker No Download">
+    <meta name="twitter:description" content="Use BlobberTrack as a free browser-based blob tracker with no download required.">
+      <!-- metadata -->
+
+  
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23ec4899'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +38,7 @@
                 </svg>
             </div>
             <div class="h-4 w-[1px] bg-slate-200 mx-2"></div>
-            <div class="text-[10px] mono text-slate-400 uppercase tracking-wider">ready</div>
+            <div class="nav-ready-label text-[10px] mono text-pink-400 uppercase tracking-wider">ready</div>
             <div class="h-4 w-[1px] bg-slate-200 mx-1"></div>
             <div class="flex items-center gap-1">
                 <button id="nav-reverse-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors icon-btn" title="Reverse">
@@ -136,19 +152,19 @@
                     </button>
                 </div>
                 <div id="video-editor-content" class="module-body overflow-y-auto overflow-x-hidden p-4 space-y-4 min-h-0">
-                    <div class="control-slider dark">
+                    <div class="control-slider dark video-editor-slider">
                         <label class="text-[9px] mono uppercase tracking-widest text-white/60">Sharpen</label>
                         <input type="range" id="sharpen-slider" min="0" max="100" value="0" class="w-full">
                     </div>
-                    <div class="control-slider dark">
+                    <div class="control-slider dark video-editor-slider">
                         <label class="text-[9px] mono uppercase tracking-widest text-white/60">Brightness</label>
                         <input type="range" id="brightness-slider" min="-100" max="100" value="0" class="w-full">
                     </div>
-                    <div class="control-slider dark">
+                    <div class="control-slider dark video-editor-slider">
                         <label class="text-[9px] mono uppercase tracking-widest text-white/60">Contrast</label>
                         <input type="range" id="contrast-slider" min="50" max="200" value="100" class="w-full">
                     </div>
-                    <div class="control-slider dark">
+                    <div class="control-slider dark video-editor-slider">
                         <label class="text-[9px] mono uppercase tracking-widest text-white/60">Saturation</label>
                         <input type="range" id="saturation-slider" min="0" max="200" value="100" class="w-full">
                     </div>
@@ -257,6 +273,104 @@
                             </div>
                         </div>
                     </div>
+                    <div class="space-y-4">
+                        <button id="color-science-toggle" class="flex items-center justify-between w-full group">
+                            <div class="flex items-center gap-2">
+                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
+                                    <circle cx="6" cy="6" r="1"></circle>
+                                    <circle cx="10" cy="5" r="1"></circle>
+                                    <circle cx="11" cy="9" r="1"></circle>
+                                    <path d="M8 2a6 6 0 100 12h1.5a1.5 1.5 0 000-3H8.8a1.3 1.3 0 010-2.6H11A3 3 0 0011 2H8z"></path>
+                                </svg>
+                                <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Color Science</span>
+                            </div>
+                            <div id="color-science-indicator" class="w-2 h-2 rounded-full bg-pink-900 scale-75"></div>
+                        </button>
+                        <div id="color-science-panel" class="overflow-hidden space-y-4 hidden">
+                            <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-4">
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Trail Hue</label>
+                                    <input type="range" id="trail-hue-slider" min="0" max="360" value="0" class="w-full">
+                                </div>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Line Thickness</label>
+                                    <input type="range" id="line-thickness-slider" min="1" max="10" value="1" class="w-full">
+                                </div>
+                                <div class="space-y-2">
+                                    <span class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Blob Color</span>
+                                    <div class="flex gap-2">
+                                        <button class="color-btn" data-color="#ffffff" style="background-color: #ffffff"></button>
+                                        <button class="color-btn" data-color="#ef4444" style="background-color: #ef4444"></button>
+                                        <button class="color-btn" data-color="#ec4899" style="background-color: #ec4899"></button>
+                                        <button class="color-btn" data-color="#00ff00" style="background-color: #00ff00"></button>
+                                        <button class="color-btn" data-color="#3b82f6" style="background-color: #3b82f6"></button>
+                                        <button class="color-btn" data-color="#f59e0b" style="background-color: #f59e0b"></button>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <span class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Line Color</span>
+                                    <div class="flex gap-2">
+                                        <button class="line-color-btn" data-line-color="#ffffff" style="background-color: #ffffff"></button>
+                                        <button class="line-color-btn" data-line-color="#ef4444" style="background-color: #ef4444"></button>
+                                        <button class="line-color-btn" data-line-color="#ec4899" style="background-color: #ec4899"></button>
+                                        <button class="line-color-btn" data-line-color="#00ff00" style="background-color: #00ff00"></button>
+                                        <button class="line-color-btn" data-line-color="#22c55e" style="background-color: #22c55e"></button>
+                                        <button class="line-color-btn" data-line-color="#a855f7" style="background-color: #a855f7"></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <button id="matte-blob-toggle" class="flex items-center justify-between w-full group">
+                            <div class="flex items-center gap-2">
+                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
+                                    <rect x="2.5" y="2.5" width="4" height="4"></rect>
+                                    <rect x="8.5" y="2.5" width="5" height="4"></rect>
+                                    <rect x="2.5" y="8.5" width="6" height="5"></rect>
+                                    <rect x="9.5" y="9.5" width="4" height="4"></rect>
+                                </svg>
+                                <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Matte Blob</span>
+                            </div>
+                            <div id="matte-blob-indicator" class="w-2 h-2 rounded-full bg-pink-900 scale-75"></div>
+                        </button>
+                        <div id="matte-blob-panel" class="overflow-hidden space-y-4 hidden">
+                            <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-3">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="show-matte-blob">
+                                    <span class="toggle-text">Enable Matte Blob</span>
+                                </label>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Video Behind Matte</label>
+                                    <input type="range" id="matte-video-opacity-slider" min="0" max="100" value="35" class="w-full matte-slider">
+                                </div>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Generation Slowdown</label>
+                                    <input type="range" id="matte-generation-slider" min="1" max="12" value="3" class="w-full matte-slider">
+                                </div>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Density</label>
+                                    <input type="range" id="matte-density-slider" min="1" max="10" value="7" class="w-full matte-slider">
+                                </div>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Expansion Radius</label>
+                                    <input type="range" id="matte-radius-slider" min="0" max="160" value="92" class="w-full matte-slider">
+                                </div>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Tile Scale</label>
+                                    <input type="range" id="matte-size-slider" min="50" max="260" value="105" class="w-full matte-slider">
+                                </div>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Vertical Spread</label>
+                                    <input type="range" id="matte-vertical-slider" min="20" max="100" value="80" class="w-full matte-slider">
+                                </div>
+                                <div class="control-slider dark">
+                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Tile Persistence</label>
+                                    <input type="range" id="matte-persistence-slider" min="0" max="25" value="14" class="w-full matte-slider">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
@@ -297,7 +411,7 @@
                         </div>
                     </div>
                     <div class="space-y-4">
-                        <button id="blob-params-toggle" class="p-3 border border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10 rounded-sm">
+                        <div class="p-3 border border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10 rounded-sm">
                             <div class="flex items-center gap-2">
                                 <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
                                     <circle cx="6" cy="6" r="1"></circle>
@@ -307,132 +421,44 @@
                                 </svg>
                                 <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Blob Parameters</span>
                             </div>
-                            <span id="blob-params-toggle-icon" class="icon-slot text-pink-300"></span>
-                        </button>
-                        <div id="blob-params-panel" class="overflow-hidden space-y-4">
+                            <button id="blob-params-toggle" class="p-1.5 rounded-sm bg-pink-500/10 text-pink-300 hover:bg-pink-500/20 transition-colors" type="button" aria-expanded="false" aria-controls="blob-params-panel">
+                                <span id="blob-params-toggle-icon" class="icon-slot"></span>
+                            </button>
+                        </div>
+                        <div id="blob-params-panel" class="overflow-hidden space-y-4 hidden">
                             <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-2 blob-params-panel-ui">
-                                <label class="toggle-label">
-                                    <input type="checkbox" id="show-boxes" checked>
-                                    <span class="toggle-text">Bounding Boxes</span>
+                                <label class="blob-param-row">
+                                    <span class="blob-param-name">Bounding Boxes</span>
+                                    <span class="blob-param-switch">
+                                        <input type="checkbox" id="show-boxes" checked>
+                                        <span class="blob-param-pill"></span>
+                                    </span>
                                 </label>
-                                <label class="toggle-label">
-                                    <input type="checkbox" id="show-centers" checked>
-                                    <span class="toggle-text">Blob Centers</span>
+                                <label class="blob-param-row">
+                                    <span class="blob-param-name">Blob Centers</span>
+                                    <span class="blob-param-switch">
+                                        <input type="checkbox" id="show-centers" checked>
+                                        <span class="blob-param-pill"></span>
+                                    </span>
                                 </label>
-                                <label class="toggle-label">
-                                    <input type="checkbox" id="show-trails" checked>
-                                    <span class="toggle-text">Motion Trails</span>
+                                <label class="blob-param-row">
+                                    <span class="blob-param-name">Motion Trails</span>
+                                    <span class="blob-param-switch">
+                                        <input type="checkbox" id="show-trails" checked>
+                                        <span class="blob-param-pill"></span>
+                                    </span>
                                 </label>
-                                <label class="toggle-label">
-                                    <input type="checkbox" id="show-coords" checked>
-                                    <span class="toggle-text">Coordinates</span>
+                                <label class="blob-param-row">
+                                    <span class="blob-param-name">Coordinates</span>
+                                    <span class="blob-param-switch">
+                                        <input type="checkbox" id="show-coords" checked>
+                                        <span class="blob-param-pill"></span>
+                                    </span>
                                 </label>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Color Science Collapsible -->
-                    <div class="space-y-4">
-                        <button id="color-science-toggle" class="flex items-center justify-between w-full group">
-                            <div class="flex items-center gap-2">
-                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
-                                    <circle cx="6" cy="6" r="1"></circle>
-                                    <circle cx="10" cy="5" r="1"></circle>
-                                    <circle cx="11" cy="9" r="1"></circle>
-                                    <path d="M8 2a6 6 0 100 12h1.5a1.5 1.5 0 000-3H8.8a1.3 1.3 0 010-2.6H11A3 3 0 0011 2H8z"></path>
-                                </svg>
-                                <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Color Science</span>
-                            </div>
-                            <div id="color-science-indicator" class="w-2 h-2 rounded-full bg-pink-900 scale-75"></div>
-                        </button>
-
-                        <div id="color-science-panel" class="overflow-hidden space-y-4 hidden">
-                            <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-4">
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Trail Hue</label>
-                                    <input type="range" id="trail-hue-slider" min="0" max="360" value="0" class="w-full">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Line Thickness</label>
-                                    <input type="range" id="line-thickness-slider" min="1" max="10" value="1" class="w-full">
-                                </div>
-                                <div class="space-y-2">
-                                    <span class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Blob Color</span>
-                                    <div class="flex gap-2">
-                                        <button class="color-btn" data-color="#ffffff" style="background-color: #ffffff"></button>
-                                        <button class="color-btn" data-color="#ef4444" style="background-color: #ef4444"></button>
-                                        <button class="color-btn" data-color="#ec4899" style="background-color: #ec4899"></button>
-                                        <button class="color-btn" data-color="#00ff00" style="background-color: #00ff00"></button>
-                                        <button class="color-btn" data-color="#3b82f6" style="background-color: #3b82f6"></button>
-                                        <button class="color-btn" data-color="#f59e0b" style="background-color: #f59e0b"></button>
-                                    </div>
-                                </div>
-                                <div class="space-y-2">
-                                    <span class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Line Color</span>
-                                    <div class="flex gap-2">
-                                        <button class="line-color-btn" data-line-color="#ffffff" style="background-color: #ffffff"></button>
-                                        <button class="line-color-btn" data-line-color="#ef4444" style="background-color: #ef4444"></button>
-                                        <button class="line-color-btn" data-line-color="#ec4899" style="background-color: #ec4899"></button>
-                                        <button class="line-color-btn" data-line-color="#00ff00" style="background-color: #00ff00"></button>
-                                        <button class="line-color-btn" data-line-color="#22c55e" style="background-color: #22c55e"></button>
-                                        <button class="line-color-btn" data-line-color="#a855f7" style="background-color: #a855f7"></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <button id="matte-blob-toggle" class="flex items-center justify-between w-full group">
-                            <div class="flex items-center gap-2">
-                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
-                                    <rect x="2.5" y="2.5" width="4" height="4"></rect>
-                                    <rect x="8.5" y="2.5" width="5" height="4"></rect>
-                                    <rect x="2.5" y="8.5" width="6" height="5"></rect>
-                                    <rect x="9.5" y="9.5" width="4" height="4"></rect>
-                                </svg>
-                                <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Matte Blob</span>
-                            </div>
-                            <div id="matte-blob-indicator" class="w-2 h-2 rounded-full bg-pink-900 scale-75"></div>
-                        </button>
-
-                        <div id="matte-blob-panel" class="overflow-hidden space-y-4 hidden">
-                            <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-3">
-                                <label class="toggle-label">
-                                    <input type="checkbox" id="show-matte-blob">
-                                    <span class="toggle-text">Enable Matte Blob</span>
-                                </label>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Video Behind Matte</label>
-                                    <input type="range" id="matte-video-opacity-slider" min="0" max="100" value="35" class="w-full matte-slider">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Generation Slowdown</label>
-                                    <input type="range" id="matte-generation-slider" min="1" max="12" value="3" class="w-full matte-slider">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Density</label>
-                                    <input type="range" id="matte-density-slider" min="1" max="10" value="7" class="w-full matte-slider">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Expansion Radius</label>
-                                    <input type="range" id="matte-radius-slider" min="0" max="160" value="92" class="w-full matte-slider">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Tile Scale</label>
-                                    <input type="range" id="matte-size-slider" min="50" max="260" value="105" class="w-full matte-slider">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Vertical Spread</label>
-                                    <input type="range" id="matte-vertical-slider" min="20" max="100" value="80" class="w-full matte-slider">
-                                </div>
-                                <div class="control-slider dark">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Tile Persistence</label>
-                                    <input type="range" id="matte-persistence-slider" min="0" max="25" value="14" class="w-full matte-slider">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </aside>
             </div>
@@ -448,25 +474,6 @@
                     <span id="more-hud-toggle-icon" class="icon-slot text-pink-300"></span>
                 </button>
                 <div id="more-hud-content" class="more-hud-content flex-1 min-h-0 overflow-y-auto">
-                    <div id="left-slime-panel" class="h-44 border-b border-white/10 bg-black flex flex-col overflow-hidden">
-                        <div class="p-3 border-b border-white/5 flex items-center gap-2">
-                            <svg class="ui-icon text-pink-400" viewBox="0 0 16 16" aria-hidden="true">
-                                <path d="M8 1.5l4.5 4.5L8 10.5 3.5 6 8 1.5z"></path>
-                            </svg>
-                            <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Majin_Buu_Goo.sys</span>
-                        </div>
-                        <div class="flex-1 flex items-center justify-center relative overflow-hidden bg-white/5">
-                            <canvas id="goo-canvas" class="w-full h-full"></canvas>
-                            <div class="absolute bottom-2 left-3 text-[8px] mono text-pink-400/60 uppercase tracking-tighter">
-                                Happy_Slime_v4.0
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
-                        <div id="vhs-slot" class="p-2"></div>
-                    </div>
-
                     <div id="left-fx-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden fx-hud collapsed">
                         <button id="fx-presets-toggle" class="p-3 border-b border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10">
                             <div class="flex items-center gap-2">
@@ -502,6 +509,10 @@
                         </div>
                     </div>
 
+                    <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
+                        <div id="vhs-slot" class="p-2"></div>
+                    </div>
+
                     <div id="left-blob-panel" class="flex flex-col overflow-hidden min-h-0 border-b border-white/10">
                         <div class="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">
                             <div class="flex items-center gap-2">
@@ -520,23 +531,31 @@
                             </div>
                         </div>
                     </div>
-                    <div id="left-contact-panel" class="p-2 border-t border-pink-500/40 bg-pink-500/10 space-y-1">
-                        <div class="text-[8px] mono uppercase tracking-[0.16em] text-pink-300 text-center">BY A. LALL // MARCH 2026</div>
-                        <div class="text-[8px] mono text-pink-100 break-all text-center">all266@cornell.edu</div>
-                        <div class="text-[8px] mono text-pink-100 break-all text-center">Built with React + TSX + CDX5.4</div>
-                        <div class="text-[8px] mono text-pink-200 text-center">
-                            <a href="https://www.youtube.com/@shotbyall" target="_blank" rel="noopener noreferrer" class="underline text-pink-100">shotbyall</a>
+
+                    <div id="left-slime-panel" class="h-44 border-b border-white/10 bg-black flex flex-col overflow-hidden">
+                        <div class="p-3 border-b border-white/5 flex items-center gap-2">
+                            <svg class="ui-icon text-pink-400" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M8 1.5l4.5 4.5L8 10.5 3.5 6 8 1.5z"></path>
+                            </svg>
+                            <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Majin Buu</span>
+                        </div>
+                        <div class="flex-1 flex items-center justify-center relative overflow-hidden bg-white/5">
+                            <canvas id="goo-canvas" class="w-full h-full"></canvas>
+                            <div class="absolute bottom-2 left-3 text-[8px] mono text-pink-400/60 uppercase tracking-tighter">
+                                Happy_Slime_v4.0
+                            </div>
                         </div>
                     </div>
-                    <div id="left-debug-panel" class="p-3 border-t border-white/10 bg-black/80">
-                        <div class="text-[9px] mono uppercase tracking-widest text-white/50 mb-2">Debug Console</div>
+
+                    <div id="left-debug-panel" class="compact-status-panel p-3 border-t border-white/10 bg-black/80">
+                        <div class="text-[9px] mono uppercase tracking-widest text-white/50 mb-2">Debug</div>
                         <div class="mb-2 text-[9px] mono uppercase tracking-widest text-emerald-300/80 space-y-1">
                             <div id="fps-display">FPS: 0</div>
                             <div id="blob-count-display">BLOBS: 0</div>
                             <div id="status-display">STATUS: LOADING CV...</div>
                         </div>
-                        <div id="debug-console" class="h-20 overflow-y-auto text-[8px] mono text-emerald-300/80 bg-black border border-white/10 p-2 space-y-1"></div>
-                        <button id="test-mode-btn" class="mt-2 w-full flex items-center justify-center gap-2 px-2 py-1.5 bg-black border border-emerald-500/40 hover:bg-emerald-950/40 transition-all group hidden">
+                        <div id="debug-console" class="h-20 overflow-y-auto text-[8px] mono text-emerald-300/80 bg-black border border-white/10 p-2 space-y-1 compact-debug-console"></div>
+                        <button id="test-mode-btn" class="mt-2 w-full flex items-center justify-center gap-2 px-2 py-1.5 bg-black border border-emerald-500/40 hover:bg-emerald-950/40 transition-all group hidden compact-test-mode-btn">
                             <svg class="ui-icon text-emerald-400 group-hover:animate-pulse" viewBox="0 0 16 16" aria-hidden="true">
                                 <rect x="2.5" y="5" width="11" height="6" rx="1.5"></rect>
                                 <path d="M6 8H4m1-1v2m4-1h2"></path>
@@ -561,11 +580,18 @@
                 </button>
             </div>
             <div class="space-y-8 text-[11px] leading-relaxed">
+                <div id="left-contact-panel" class="compact-status-panel p-2 border-t border-pink-500/40 bg-pink-500/10 space-y-1">
+                    <div class="text-[18px] mono uppercase tracking-[0.16em] text-pink-300 text-center">BY A. LALL // MARCH 2026</div>
+                    <div class="text-[18px] mono text-pink-100 break-all text-center">all266@cornell.edu</div>
+                    <div class="text-[18px] mono text-pink-100 break-all text-center">Built with React + TSX + CDX5.4</div>
+                    <div class="text-[18px] mono text-pink-200 text-center">
+                        <a href="https://www.youtube.com/@shotbyall" target="_blank" rel="noopener noreferrer" class="underline text-pink-100">shotbyall</a>
+                    </div>
+                </div>
                 <section>
                     <h3 class="text-white/60 mb-3 uppercase tracking-wider font-bold border-l-2 border-white pl-2">Video Editor</h3>
                     <div class="space-y-4">
                         <div><p class="font-bold text-white mb-1">Sharpen</p><p class="text-white/40">Enhances local edge contrast for a crisper image. Higher values can introduce a stylized harshness.</p></div>
-                        <div><p class="font-bold text-white mb-1">Bit Crush</p><p class="text-white/40">Reduces color precision to simulate digital compression artifacts. Lower values create more pronounced pixelation.</p></div>
                         <div><p class="font-bold text-white mb-1">Brightness</p><p class="text-white/40">Adjusts the overall light level. Higher values make pixels brighter. Useful for dark footage.</p></div>
                         <div><p class="font-bold text-white mb-1">Contrast</p><p class="text-white/40">Controls the difference between light and dark areas. Higher contrast makes blobs easier to separate.</p></div>
                         <div><p class="font-bold text-white mb-1">Saturation</p><p class="text-white/40">Controls color intensity. Affects threshold separation even though tracking is grayscale.</p></div>

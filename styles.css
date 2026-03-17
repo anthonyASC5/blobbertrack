@@ -1163,38 +1163,18 @@ body {
 }
 
 .pink-code-ui #top-bar {
-  background:
-    linear-gradient(180deg, rgba(49, 0, 26, 0.96), rgba(18, 0, 10, 0.98));
-  border-bottom: 1px solid rgba(255, 86, 182, 0.85);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 168, 221, 0.28),
-    inset 0 -1px 0 rgba(255, 86, 182, 0.18),
-    0 0 0 1px rgba(255, 86, 182, 0.18);
-}
-
-.pink-code-ui #top-bar::before,
-.pink-code-ui #top-bar::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 122, 198, 0.65);
-  pointer-events: none;
-}
-
-.pink-code-ui #top-bar::before {
-  top: 4px;
-}
-
-.pink-code-ui #top-bar::after {
-  bottom: 4px;
-  opacity: 0.45;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(255, 86, 182, 0.45);
+  box-shadow: none;
 }
 
 .pink-code-ui #nav-title {
   color: #ff8fca;
   text-shadow: 0 0 8px rgba(255, 105, 180, 0.4);
+}
+
+.pink-code-ui #top-bar .nav-ready-label {
+  color: #ff4fa6 !important;
 }
 
 .pink-code-ui #top-bar .bg-slate-100,
@@ -1203,17 +1183,18 @@ body {
 .pink-code-ui #top-bar .bg-pink-500,
 .pink-code-ui #top-bar label,
 .pink-code-ui #top-bar button {
-  background: rgba(255, 49, 155, 0.08) !important;
-  border: 1px solid rgba(255, 86, 182, 0.45) !important;
+  background: #ff4fa6 !important;
+  border: 1px solid #ff4fa6 !important;
   border-radius: 0 !important;
-  color: #ffd4ef !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 168, 221, 0.08);
+  color: #ffffff !important;
+  box-shadow: none !important;
 }
 
 .pink-code-ui #top-bar button:hover,
 .pink-code-ui #top-bar label:hover {
-  background: rgba(255, 49, 155, 0.16) !important;
-  color: #fff4fb !important;
+  background: #ff3a99 !important;
+  border-color: #ff3a99 !important;
+  color: #ffffff !important;
 }
 
 .pink-code-ui #top-bar .h-4.w-\[1px\] {
@@ -1226,7 +1207,7 @@ body {
 .pink-code-ui #top-bar .text-slate-800,
 .pink-code-ui #top-bar .text-slate-900,
 .pink-code-ui #top-bar .text-white {
-  color: #ffb8e2 !important;
+  color: #ffffff !important;
 }
 
 .pink-code-ui #app-main {
@@ -1266,11 +1247,11 @@ body {
 
 .pink-code-ui #video-section {
   background:
-    radial-gradient(circle at center, rgba(255, 67, 166, 0.08), transparent 45%),
-    #050004;
+    #ffffff;
 }
 
 .pink-code-ui #upload-zone {
+  background: #ffffff !important;
   border-style: solid;
 }
 
@@ -1316,13 +1297,34 @@ body {
 }
 
 .pink-code-ui .dither-machine-header,
+.pink-code-ui #more-hud-toggle,
 .pink-code-ui #fx-presets-toggle,
 .pink-code-ui #video-editor-panel > .p-4:first-child,
 .pink-code-ui #left-slime-panel > .p-3:first-child,
 .pink-code-ui #left-blob-panel > .p-3:first-child {
-  background:
-    linear-gradient(180deg, rgba(98, 0, 52, 0.9), rgba(45, 0, 24, 0.96)) !important;
+  background: #ff4fa6 !important;
   border-bottom: 1px solid rgba(255, 86, 182, 0.55) !important;
+}
+
+.pink-code-ui #more-hud-toggle {
+  background: #ffffff !important;
+  border-color: rgba(255, 86, 182, 0.55) !important;
+}
+
+.pink-code-ui #more-hud-toggle .text-\[9px\],
+.pink-code-ui #more-hud-toggle .ui-icon,
+.pink-code-ui #more-hud-toggle .icon-slot {
+  color: #ff4fa6 !important;
+}
+
+.pink-code-ui #left-slime-panel > .p-3:first-child {
+  background: #ffffff !important;
+  border-bottom-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.pink-code-ui #left-slime-panel > .p-3:first-child .text-\[9px\],
+.pink-code-ui #left-slime-panel > .p-3:first-child .ui-icon {
+  color: #000000 !important;
 }
 
 .pink-code-ui .dither-machine-title,
@@ -1415,7 +1417,7 @@ body {
 }
 
 .pink-code-ui #left-contact-panel::after {
-  content: "Select a file and confirm   Or press CODE-? for help";
+  content: "blob tracker FREE online generator";
   position: absolute;
   left: 0;
   right: 0;
@@ -1439,4 +1441,174 @@ body {
 .pink-code-ui ::-webkit-scrollbar-thumb {
   background: rgba(255, 95, 181, 0.55);
   border-radius: 0;
+}
+
+.blob-param-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+
+.blob-param-name {
+  font-family: 'VT323', 'JetBrains Mono', monospace;
+  font-size: 19px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(251, 207, 232, 0.96);
+}
+
+.blob-param-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.blob-param-switch input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.blob-param-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.6rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid rgba(255, 86, 182, 0.45);
+  background: rgba(85, 7, 46, 0.9);
+  color: rgba(255, 192, 228, 0.75);
+  font-family: 'VT323', 'JetBrains Mono', monospace;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.blob-param-pill::before {
+  content: "Off";
+}
+
+.blob-param-switch input:checked + .blob-param-pill {
+  background: rgba(255, 65, 162, 0.96);
+  border-color: rgba(255, 190, 225, 0.92);
+  color: #fff4fb;
+}
+
+.blob-param-switch input:checked + .blob-param-pill::before {
+  content: "On";
+}
+
+.pink-code-ui .text-\[8px\] {
+  font-size: 18px !important;
+}
+
+.pink-code-ui .text-\[9px\] {
+  font-size: 19px !important;
+}
+
+.pink-code-ui .text-\[10px\] {
+  font-size: 20px !important;
+}
+
+.pink-code-ui .text-\[11px\] {
+  font-size: 21px !important;
+}
+
+.pink-code-ui .text-\[12px\] {
+  font-size: 22px !important;
+}
+
+.pink-code-ui .text-\[14px\] {
+  font-size: 24px !important;
+}
+
+.pink-code-ui .text-3xl {
+  font-size: 40px !important;
+}
+
+.pink-code-ui .toggle-text,
+.pink-code-ui .optimization-title,
+.pink-code-ui .blob-id,
+.pink-code-ui .preset-label,
+.pink-code-ui .preset-action-btn,
+.pink-code-ui .drawer-title {
+  font-size: 19px !important;
+}
+
+.pink-code-ui .optimization-copy,
+.pink-code-ui .blob-data {
+  font-size: 20px !important;
+}
+
+.pink-code-ui .optimization-label,
+.pink-code-ui .dither-control label {
+  font-size: 18px !important;
+}
+
+.pink-code-ui .optimization-select {
+  font-size: 22px !important;
+}
+
+.pink-code-ui .dither-machine-title {
+  font-size: 21px !important;
+}
+
+.pink-code-ui #more-tab-toggle .dither-machine-title,
+.pink-code-ui #more-tab-toggle .icon-slot {
+  color: #96ffb8 !important;
+}
+
+.pink-code-ui .video-editor-slider label {
+  font-size: 9px !important;
+  line-height: 1 !important;
+}
+
+.pink-code-ui .compact-status-panel {
+  gap: 0.2rem !important;
+}
+
+.pink-code-ui #left-contact-panel.compact-status-panel {
+  padding: 0.4rem 0.45rem 1.15rem !important;
+}
+
+.pink-code-ui #left-debug-panel.compact-status-panel {
+  padding: 0.5rem 0.55rem !important;
+}
+
+.pink-code-ui #left-contact-panel.compact-status-panel .text-\[8px\],
+.pink-code-ui #left-debug-panel.compact-status-panel .text-\[9px\],
+.pink-code-ui #left-debug-panel.compact-status-panel .text-\[8px\],
+.pink-code-ui #left-debug-panel.compact-status-panel #fps-display,
+.pink-code-ui #left-debug-panel.compact-status-panel #blob-count-display,
+.pink-code-ui #left-debug-panel.compact-status-panel #status-display {
+  font-size: 9px !important;
+  line-height: 1 !important;
+}
+
+.pink-code-ui #left-debug-panel.compact-status-panel > .mb-2,
+.pink-code-ui #left-debug-panel.compact-status-panel > div.mb-2 {
+  margin-bottom: 0.35rem !important;
+}
+
+.pink-code-ui .compact-debug-console {
+  height: 4rem !important;
+  padding: 0.35rem !important;
+}
+
+.pink-code-ui .compact-test-mode-btn {
+  margin-top: 0.35rem !important;
+  padding: 0.3rem 0.45rem !important;
+  gap: 0.35rem !important;
+}
+
+.pink-code-ui .compact-test-mode-btn .text-\[9px\] {
+  font-size: 9px !important;
+  line-height: 1 !important;
 }

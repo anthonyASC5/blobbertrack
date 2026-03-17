@@ -491,9 +491,14 @@ function toggleMoreTab() {
 
 function toggleBlobParamsPanel() {
   const panel = document.getElementById('blob-params-panel');
+  const toggle = document.getElementById('blob-params-toggle');
   const icon = document.getElementById('blob-params-toggle-icon');
-  panel.classList.toggle('hidden');
-  icon.innerHTML = panel.classList.contains('hidden') ? ICONS.chevronRight : ICONS.chevronDown;
+  if (!panel || !toggle) return;
+  const isCollapsed = panel.classList.toggle('hidden');
+  toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+  if (icon) {
+    icon.innerHTML = isCollapsed ? ICONS.chevronRight : ICONS.chevronDown;
+  }
 }
 
 function syncMatteBlobControls() {
@@ -549,12 +554,14 @@ function initializeIcons() {
   document.getElementById('nav-forward-icon').innerHTML = ICONS.forward;
   document.getElementById('nav-restart-icon').innerHTML = ICONS.restart;
   document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
-  document.getElementById('more-hud-toggle-icon').innerHTML = ICONS.chevronDown;
+  document.getElementById('blob-params-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('fx-presets-toggle-icon').innerHTML = ICONS.chevronRight;
-  document.getElementById('blob-params-toggle-icon').innerHTML = ICONS.chevronDown;
   document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;
   setRecordButtonState(false);
+  setPanelExpanded('more-hud-panel', false, 'more-hud-toggle-icon');
   setPanelExpanded('left-fx-panel', false, 'fx-presets-toggle-icon');
+  setIndicatorPanelState('color-science-panel', 'color-science-indicator', false);
+  setIndicatorPanelState('matte-blob-panel', 'matte-blob-indicator', false);
   setBlobColor('#ffffff');
   setLineColor('#ffffff');
   syncMatteBlobControls();
