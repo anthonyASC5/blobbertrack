@@ -133,7 +133,10 @@
         <div id="right-column" class="hud-panel shrink-0 min-h-0 relative border-l border-slate-200 bg-black text-white">
             <button id="mobile-hud-drawer-toggle" class="drawer-toggle" type="button" aria-expanded="false" aria-controls="control-column">
                 <span class="drawer-grip" aria-hidden="true"></span>
-                <span class="drawer-title mono">Control Dock</span>
+                <span class="drawer-title-wrap">
+                    <span class="drawer-title mono">Control Dock</span>
+                    <span class="drawer-note mono">More Options on Desktop Site</span>
+                </span>
             </button>
             <div id="control-column" class="flex flex-col w-full h-full min-h-0">
             <div id="primary-hud-column" class="flex flex-col min-h-0 flex-1">
@@ -172,7 +175,6 @@
                     <div class="optimization-panel">
                         <div class="optimization-header">
                             <span class="optimization-title mono">Optimization</span>
-                            <span class="optimization-copy">Tune preview performance and recording output.</span>
                         </div>
                         <div class="optimization-grid">
                             <label class="optimization-field">
@@ -377,7 +379,7 @@
             <!-- HUD Controls Panel -->
             <aside id="hud-panel" class="flex-1 flex flex-col bg-black text-white relative z-10 min-h-0">
                 <div id="hud-content" class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-8 min-h-0">
-                    <div class="space-y-4">
+                    <div id="detection-pipeline-section" class="space-y-4">
                         <div class="flex items-center gap-2 mb-4">
                             <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
                                 <circle cx="8" cy="8" r="2.5"></circle>
@@ -390,7 +392,7 @@
                             <input type="range" id="blur-slider" min="0" max="10" value="3" class="w-full">
                         </div>
                     </div>
-                    <div class="space-y-4">
+                    <div id="tracking-logic-section" class="space-y-4">
                         <div class="flex items-center gap-2 mb-4">
                             <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
                                 <path d="M2.5 12.5L12.5 2.5M2.5 12.5h10M2.5 12.5v-10"></path>
@@ -410,7 +412,7 @@
                             <input type="range" id="sensitivity-slider" min="1" max="500" value="360" class="w-full">
                         </div>
                     </div>
-                    <div class="space-y-4">
+                    <div id="blob-params-section" class="space-y-4">
                         <div class="p-3 border border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10 rounded-sm">
                             <div class="flex items-center gap-2">
                                 <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
@@ -459,6 +461,45 @@
                         </div>
                     </div>
 
+                    <div id="presets-section" class="space-y-4">
+                        <div class="p-3 border border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10 rounded-sm">
+                            <div class="flex items-center gap-2">
+                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M2.5 8h11M8 2.5v11"></path>
+                                </svg>
+                                <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Presets</span>
+                            </div>
+                            <button id="fx-presets-toggle" class="p-1.5 rounded-sm bg-pink-500/10 text-pink-300 hover:bg-pink-500/20 transition-colors" type="button" aria-expanded="false" aria-controls="fx-presets-content">
+                                <span id="fx-presets-toggle-icon" class="icon-slot"></span>
+                            </button>
+                        </div>
+                        <div id="left-fx-panel" class="overflow-hidden space-y-4 hidden">
+                            <div id="fx-presets-content" class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-2 blob-params-panel-ui">
+                                <label class="blob-param-row">
+                                    <span class="blob-param-name">Negative</span>
+                                    <span class="blob-param-switch">
+                                        <input type="checkbox" id="fx-negative">
+                                        <span class="blob-param-pill"></span>
+                                    </span>
+                                </label>
+                                <label class="blob-param-row">
+                                    <span class="blob-param-name">Blur Glow In Blob</span>
+                                    <span class="blob-param-switch">
+                                        <input type="checkbox" id="fx-blur">
+                                        <span class="blob-param-pill"></span>
+                                    </span>
+                                </label>
+                                <label class="blob-param-row">
+                                    <span class="blob-param-name">Magnify Link Blob</span>
+                                    <span class="blob-param-switch">
+                                        <input type="checkbox" id="fx-magnifier-link">
+                                        <span class="blob-param-pill"></span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </aside>
             </div>
@@ -474,41 +515,6 @@
                     <span id="more-hud-toggle-icon" class="icon-slot text-pink-300"></span>
                 </button>
                 <div id="more-hud-content" class="more-hud-content flex-1 min-h-0 overflow-y-auto">
-                    <div id="left-fx-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden fx-hud collapsed">
-                        <button id="fx-presets-toggle" class="p-3 border-b border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10">
-                            <div class="flex items-center gap-2">
-                                <svg class="ui-icon text-pink-300" viewBox="0 0 16 16" aria-hidden="true">
-                                    <path d="M2.5 8h11M8 2.5v11"></path>
-                                </svg>
-                                <span class="text-[9px] mono uppercase tracking-widest font-bold text-pink-300">Presets</span>
-                            </div>
-                            <span id="fx-presets-toggle-icon" class="icon-slot text-pink-300"></span>
-                        </button>
-                        <div id="fx-presets-content" class="fx-presets-body">
-                            <label class="preset-switch-row">
-                                <span class="preset-label mono">Negative</span>
-                                <span class="preset-switch">
-                                    <input type="checkbox" id="fx-negative">
-                                    <span class="preset-slider" aria-hidden="true"></span>
-                                </span>
-                            </label>
-                            <label class="preset-switch-row">
-                                <span class="preset-label mono">Blur Glow In Blob</span>
-                                <span class="preset-switch">
-                                    <input type="checkbox" id="fx-blur">
-                                    <span class="preset-slider" aria-hidden="true"></span>
-                                </span>
-                            </label>
-                            <label class="preset-switch-row">
-                                <span class="preset-label mono">Magnify Link Blob</span>
-                                <span class="preset-switch">
-                                    <input type="checkbox" id="fx-magnifier-link">
-                                    <span class="preset-slider" aria-hidden="true"></span>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-
                     <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
                         <div id="vhs-slot" class="p-2"></div>
                     </div>

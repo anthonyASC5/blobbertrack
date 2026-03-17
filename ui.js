@@ -283,9 +283,14 @@ function toggleVideoEditor() {
 
 function toggleFxPresetsPanel() {
   const panel = document.getElementById('left-fx-panel');
+  const toggle = document.getElementById('fx-presets-toggle');
   const icon = document.getElementById('fx-presets-toggle-icon');
-  const isCollapsed = panel.classList.toggle('collapsed');
-  icon.innerHTML = isCollapsed ? ICONS.chevronRight : ICONS.chevronDown;
+  if (!panel || !toggle) return;
+  const isCollapsed = panel.classList.toggle('hidden');
+  toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+  if (icon) {
+    icon.innerHTML = isCollapsed ? ICONS.chevronRight : ICONS.chevronDown;
+  }
 }
 
 function toggleMoreHUD() {
@@ -559,7 +564,7 @@ function initializeIcons() {
   document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;
   setRecordButtonState(false);
   setPanelExpanded('more-hud-panel', false, 'more-hud-toggle-icon');
-  setPanelExpanded('left-fx-panel', false, 'fx-presets-toggle-icon');
+  setSimpleTogglePanel('left-fx-panel', false, 'fx-presets-toggle-icon');
   setIndicatorPanelState('color-science-panel', 'color-science-indicator', false);
   setIndicatorPanelState('matte-blob-panel', 'matte-blob-indicator', false);
   setBlobColor('#ffffff');

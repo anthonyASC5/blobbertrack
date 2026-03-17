@@ -9,13 +9,28 @@ body {
 
 :root {
   --top-bar-height: 3.5rem;
-  --desktop-hud-width: 38rem;
+  --desktop-hud-width: 33rem;
   --desktop-more-hud-width: 13rem;
   --desktop-more-hud-collapsed-width: 3.25rem;
   --mobile-breakpoint: 900px;
   --mobile-hud-collapsed-height: 3.75rem;
   --mobile-hud-expanded-height: 36vh;
   --mobile-hud-visible-height: var(--mobile-hud-collapsed-height);
+}
+
+@keyframes blobbertrackGlow {
+  0% {
+    color: #ff8fca;
+    text-shadow: 0 0 6px rgba(255, 105, 180, 0.18);
+  }
+  50% {
+    color: #ffd8ef;
+    text-shadow: 0 0 10px rgba(255, 105, 180, 0.28), 0 0 18px rgba(255, 79, 166, 0.18);
+  }
+  100% {
+    color: #ff8fca;
+    text-shadow: 0 0 6px rgba(255, 105, 180, 0.18);
+  }
 }
 
 #app-shell {
@@ -121,6 +136,21 @@ body {
 
 .drawer-toggle {
   display: none;
+}
+
+.drawer-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.drawer-note {
+  display: none;
+  font-size: 0.42rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.62);
 }
 
 #video-container canvas {
@@ -379,7 +409,7 @@ body {
 }
 
 .optimization-title {
-  font-size: 9px;
+  font-size: 7px;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   color: #fbcfe8;
@@ -422,7 +452,7 @@ body {
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
     rgba(17, 24, 39, 0.92);
   color: #fff;
-  font-size: 12px;
+  font-size: 8px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -996,15 +1026,17 @@ body {
     text-transform: uppercase;
   }
 
+  .drawer-note {
+    display: block;
+  }
+
   #control-column {
-    display: flex;
-    flex-direction: row;
-    gap: 0;
+    display: block;
     height: calc(100% - var(--mobile-hud-collapsed-height));
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-x: contain;
-    overscroll-behavior-y: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -1018,15 +1050,21 @@ body {
     border-right: 1px solid rgba(255, 255, 255, 0.08);
   }
 
+  #video-editor-panel,
+  #more-hud-panel {
+    display: none !important;
+  }
+
   #video-editor-panel {
     width: var(--mobile-video-editor-width);
     background: rgba(60, 0, 22, 0.95);
   }
 
   #hud-panel {
-    width: auto;
-    min-width: 0;
+    width: 100%;
+    min-width: 100%;
     flex: 1 1 auto;
+    border-right: 0;
   }
 
   #more-hud-panel {
@@ -1090,12 +1128,22 @@ body {
 
   #hud-content {
     display: grid;
-    grid-template-columns: repeat(2, minmax(8.5rem, 1fr));
+    grid-template-columns: 1fr;
     align-content: start;
     gap: 0.65rem;
     overflow-x: hidden;
     overflow-y: auto;
     padding: 0.65rem;
+  }
+
+  #detection-pipeline-section,
+  #blob-params-section {
+    display: none !important;
+  }
+
+  #tracking-logic-section,
+  #presets-section {
+    display: block !important;
   }
 
   #hud-content > div {
@@ -1171,6 +1219,7 @@ body {
 .pink-code-ui #nav-title {
   color: #ff8fca;
   text-shadow: 0 0 8px rgba(255, 105, 180, 0.4);
+  animation: blobbertrackGlow 7.5s ease-in-out infinite;
 }
 
 .pink-code-ui #top-bar .nav-ready-label {
@@ -1320,6 +1369,17 @@ body {
 .pink-code-ui #left-slime-panel > .p-3:first-child {
   background: #ffffff !important;
   border-bottom-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.pink-code-ui #left-blob-panel > .p-3:first-child {
+  background: #000000 !important;
+  border-bottom-color: rgba(255, 86, 182, 0.55) !important;
+}
+
+.pink-code-ui #left-blob-panel > .p-3:first-child .text-\[9px\],
+.pink-code-ui #left-blob-panel > .p-3:first-child .ui-icon,
+.pink-code-ui #left-blob-panel > .p-3:first-child #active-blobs {
+  color: #ff4fa6 !important;
 }
 
 .pink-code-ui #left-slime-panel > .p-3:first-child .text-\[9px\],
@@ -1560,14 +1620,28 @@ body {
   font-size: 21px !important;
 }
 
+.pink-code-ui #video-editor-content {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+.pink-code-ui .video-editor-slider {
+  width: 92%;
+}
+
 .pink-code-ui #more-tab-toggle .dither-machine-title,
 .pink-code-ui #more-tab-toggle .icon-slot {
   color: #96ffb8 !important;
 }
 
 .pink-code-ui .video-editor-slider label {
-  font-size: 9px !important;
+  font-size: 13px !important;
   line-height: 1 !important;
+}
+
+.pink-code-ui #left-blob-panel > .p-3:first-child .text-\[9px\],
+.pink-code-ui #left-blob-panel > .p-3:first-child #active-blobs {
+  font-size: 15px !important;
 }
 
 .pink-code-ui .compact-status-panel {
