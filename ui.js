@@ -69,10 +69,6 @@ function mountVHSPanel() {
 function setupEventListeners() {
   // Video upload
   document.getElementById('video-upload').addEventListener('change', handleFileUpload);
-  document.getElementById('aspect-ratio-toggle').addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleAspectRatioMenu();
-  });
   document.querySelectorAll('.aspect-ratio-option').forEach(option => {
     option.addEventListener('click', handleAspectRatioSelection);
   });
@@ -146,6 +142,12 @@ function setupEventListeners() {
   // More tab
   document.getElementById('more-tab-toggle').addEventListener('click', toggleMoreTab);
 
+  // Video output tab
+  document.getElementById('video-output-toggle').addEventListener('click', toggleVideoOutputTab);
+
+  // Box types tab
+  document.getElementById('box-types-toggle').addEventListener('click', toggleBoxTypesPanel);
+
   // Color science
   document.getElementById('color-science-toggle').addEventListener('click', toggleColorScience);
   document.getElementById('trail-hue-slider').addEventListener('input', updateConfig);
@@ -153,6 +155,12 @@ function setupEventListeners() {
   document.getElementById('fx-negative').addEventListener('change', updateConfig);
   document.getElementById('fx-blur').addEventListener('change', updateConfig);
   document.getElementById('fx-magnifier-link').addEventListener('change', updateConfig);
+
+  // Box type checkboxes
+  document.getElementById('box-type-circle').addEventListener('change', updateConfig);
+  document.getElementById('box-type-win98').addEventListener('change', updateConfig);
+  document.getElementById('box-type-rainbow-x').addEventListener('change', updateConfig);
+  document.getElementById('box-type-white-question').addEventListener('change', updateConfig);
 
   // Color buttons
   document.querySelectorAll('.color-btn').forEach(btn => {
@@ -439,7 +447,11 @@ function updateConfig() {
     mattePersistence: parseInt(document.getElementById('matte-persistence-slider').value),
     trailHue: parseInt(document.getElementById('trail-hue-slider').value),
     lineThickness: parseInt(document.getElementById('line-thickness-slider').value),
-    lineColor: blobTracker.config.lineColor || '#ffffff'
+    lineColor: blobTracker.config.lineColor || '#ffffff',
+    boxTypeCircle: document.getElementById('box-type-circle').checked,
+    boxTypeWin98: document.getElementById('box-type-win98').checked,
+    boxTypeRainbowX: document.getElementById('box-type-rainbow-x').checked,
+    boxTypeWhiteQuestion: document.getElementById('box-type-white-question').checked
   };
   blobTracker.updateConfig(config);
 }
@@ -617,6 +629,22 @@ function toggleMoreTab() {
   icon.innerHTML = isOpen ? ICONS.chevronDown : ICONS.chevronRight;
 }
 
+function toggleVideoOutputTab() {
+  const panel = document.getElementById('video-output-content');
+  const icon = document.getElementById('video-output-toggle-icon');
+  panel.classList.toggle('hidden');
+  const isOpen = !panel.classList.contains('hidden');
+  icon.innerHTML = isOpen ? ICONS.chevronDown : ICONS.chevronRight;
+}
+
+function toggleBoxTypesPanel() {
+  const panel = document.getElementById('box-types-content');
+  const icon = document.getElementById('box-types-toggle-icon');
+  panel.classList.toggle('hidden');
+  const isOpen = !panel.classList.contains('hidden');
+  icon.innerHTML = isOpen ? ICONS.chevronDown : ICONS.chevronRight;
+}
+
 function toggleBlobParamsPanel() {
   const panel = document.getElementById('blob-params-panel');
   const toggle = document.getElementById('blob-params-toggle');
@@ -684,6 +712,8 @@ function initializeIcons() {
   document.getElementById('blob-params-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('fx-presets-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('more-tab-toggle-icon').innerHTML = ICONS.chevronRight;
+  document.getElementById('video-output-toggle-icon').innerHTML = ICONS.chevronRight;
+  document.getElementById('box-types-toggle-icon').innerHTML = ICONS.chevronRight;
   setRecordButtonState(false);
   setPanelExpanded('more-hud-panel', false, 'more-hud-toggle-icon');
   setSimpleTogglePanel('left-fx-panel', false, 'fx-presets-toggle-icon');

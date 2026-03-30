@@ -132,7 +132,6 @@
                         </button>
                     </div>
 
-                    <div class="absolute inset-0 pointer-events-none border-[20px] border-black/50"></div>
                     <div id="viewport-info" class="absolute top-8 left-8 text-[10px] mono text-white/20 uppercase tracking-widest">
                         Viewport_01 // 0x0
                     </div>
@@ -183,6 +182,46 @@
                         <input type="range" id="saturation-slider" min="0" max="200" value="100" class="w-full">
                     </div>
                     <button id="reset-video-filters" class="w-full py-2 text-[9px] mono uppercase tracking-widest transition-colors bg-white text-black hover:bg-white/90">Reset</button>
+                    <div class="dither-machine video-output-tab">
+                        <button id="video-output-toggle" class="dither-machine-header">
+                            <span class="dither-machine-title">Video Output</span>
+                            <span id="video-output-toggle-icon" class="icon-slot"></span>
+                        </button>
+                        <div id="video-output-content" class="dither-machine-content hidden">
+                            <div class="optimization-panel compact">
+                                <div class="optimization-grid">
+                                    <label class="optimization-field">
+                                        <span class="optimization-label mono">Quality</span>
+                                        <select id="quality-select" class="optimization-select mono">
+                                            <option value="0.50">50%</option>
+                                            <option value="0.75" selected>75%</option>
+                                            <option value="0.80">80%</option>
+                                        </select>
+                                    </label>
+                                    <label class="optimization-field">
+                                        <span class="optimization-label mono">Frame Rate</span>
+                                        <select id="fps-cap-select" class="optimization-select mono">
+                                            <option value="60">60 FPS</option>
+                                            <option value="45" selected>45 FPS</option>
+                                            <option value="35">35 FPS</option>
+                                            <option value="20">20 FPS</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div id="aspect-ratio-picker" class="aspect-ratio-picker">
+                                    <div class="aspect-ratio-buttons">
+                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="Original" data-aspect-value="original">Original</button>
+                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="16:9" data-aspect-value="1.7777777778">16:9</button>
+                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="4:3" data-aspect-value="1.3333333333">4:3</button>
+                                    </div>
+                                    <button id="split-view-toggle" type="button" class="aspect-ratio-action split-view-toggle mt-2">
+                                        <span>Split View</span>
+                                        <span id="split-view-label" class="aspect-ratio-meta">Off</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="dither-machine more-tab">
                         <button id="more-tab-toggle" class="dither-machine-header">
                             <span class="dither-machine-title">VHS Emulator</span>
@@ -481,6 +520,47 @@
                         </div>
                     </div>
 
+                    <div id="box-types-section" class="space-y-4">
+                        <div class="p-3 border border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10 rounded-sm">
+                            <div class="flex items-center gap-2">
+                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
+                                    <path d="M5 3.5h6v2H5z"></path>
+                                    <path d="M4 6.5h8v2H4z"></path>
+                                </svg>
+                                <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Box Types</span>
+                            </div>
+                            <button id="box-types-toggle" class="p-1.5 rounded-sm bg-pink-500/10 text-pink-300 hover:bg-pink-500/20 transition-colors" type="button" aria-expanded="false" aria-controls="box-types-content">
+                                <span id="box-types-toggle-icon" class="icon-slot"></span>
+                            </button>
+                        </div>
+                        <div id="box-types-content" class="p-3 bg-pink-500/5 border border-pink-500/20 rounded-sm hidden space-y-2">
+                            <label class="blob-param-row">
+                                <span class="blob-param-name">Circle Blobs</span>
+                                <span class="blob-param-switch">
+                                    <input type="checkbox" id="box-type-circle"> <span class="blob-param-pill"></span>
+                                </span>
+                            </label>
+                            <label class="blob-param-row">
+                                <span class="blob-param-name">Windows 98 Style Boxes</span>
+                                <span class="blob-param-switch">
+                                    <input type="checkbox" id="box-type-win98"> <span class="blob-param-pill"></span>
+                                </span>
+                            </label>
+                            <label class="blob-param-row">
+                                <span class="blob-param-name">Rainbow Blob Boxes (with X)</span>
+                                <span class="blob-param-switch">
+                                    <input type="checkbox" id="box-type-rainbow-x"> <span class="blob-param-pill"></span>
+                                </span>
+                            </label>
+                            <label class="blob-param-row">
+                                <span class="blob-param-name">White Boxes (with ?)</span>
+                                <span class="blob-param-switch">
+                                    <input type="checkbox" id="box-type-white-question"> <span class="blob-param-pill"></span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                 </div>
             </aside>
             </div>
@@ -499,57 +579,7 @@
                     <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
                         <div id="vhs-slot" class="p-2"></div>
                         <div id="more-utility-panel" class="more-utility-panel border-t border-white/10 p-2">
-                            <div class="optimization-panel compact">
-                                <div class="optimization-header">
-                                    <span class="optimization-title mono">Video Output</span>
-                                </div>
-                                <div class="optimization-grid">
-                                    <label class="optimization-field">
-                                        <span class="optimization-label mono">Quality</span>
-                                        <select id="quality-select" class="optimization-select mono">
-                                            <option value="0.50">50%</option>
-                                            <option value="0.75" selected>75%</option>
-                                            <option value="0.80">80%</option>
-                                        </select>
-                                    </label>
-                                    <label class="optimization-field">
-                                        <span class="optimization-label mono">Frame Rate</span>
-                                        <select id="fps-cap-select" class="optimization-select mono">
-                                            <option value="60">60 FPS</option>
-                                            <option value="45" selected>45 FPS</option>
-                                            <option value="35">35 FPS</option>
-                                            <option value="20">20 FPS</option>
-                                        </select>
-                                    </label>
-                                </div>
-                                <div id="aspect-ratio-picker" class="aspect-ratio-picker relative">
-                                    <button id="aspect-ratio-toggle" type="button" class="aspect-ratio-toggle mono" aria-expanded="false" aria-controls="aspect-ratio-menu">
-                                        <span class="aspect-ratio-toggle-copy">Aspect Ratio</span>
-                                        <span id="aspect-ratio-label">Original</span>
-                                        <span class="aspect-ratio-caret">v</span>
-                                    </button>
-                                    <div id="aspect-ratio-menu" class="aspect-ratio-menu hidden absolute left-0 top-full z-20 mt-2 w-full p-1">
-                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="Original" data-aspect-value="original">
-                                            <span>Original</span>
-                                            <span class="aspect-ratio-meta">Source</span>
-                                        </button>
-                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="16:9" data-aspect-value="1.7777777778">
-                                            <span>16:9</span>
-                                            <span class="aspect-ratio-meta">Wide</span>
-                                        </button>
-                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="4:3" data-aspect-value="1.3333333333">
-                                            <span>4:3</span>
-                                            <span class="aspect-ratio-meta">Classic</span>
-                                        </button>
-                                        <button id="split-view-toggle" type="button" class="aspect-ratio-action mono mt-1">
-                                            <span>Split View</span>
-                                            <span id="split-view-label" class="aspect-ratio-meta">Off</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
-                    </div>
 
                     <div id="left-blob-panel" class="flex flex-col overflow-hidden min-h-0 border-b border-white/10">
                         <div class="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">

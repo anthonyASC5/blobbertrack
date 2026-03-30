@@ -433,12 +433,8 @@ class BlobTracker {
         }
       }
 
-      // Box
-      if (config.showBoxes) {
-        oCtx.strokeStyle = lineColor;
-        oCtx.lineWidth = thickness;
-        oCtx.strokeRect(blob.x - blob.width / 2, blob.y - blob.height / 2, blob.width, blob.height);
-      }
+      // Box - always render with selected box type style
+      this.renderBlobBox(oCtx, blob, config, lineColor, thickness);
 
       // Center
       if (config.showCenters) {
@@ -454,6 +450,84 @@ class BlobTracker {
         oCtx.fillText(`ID:${blob.id} X:${Math.round(blob.x)} Y:${Math.round(blob.y)}`, blob.x - blob.width / 2, blob.y - blob.height / 2 - 5);
       }
     });
+  }
+
+  renderBlobBox(oCtx, blob, config, lineColor, thickness) {
+    const x = blob.x - blob.width / 2;
+    const y = blob.y - blob.height / 2;
+    const w = blob.width;
+    const h = blob.height;
+
+    if (config.boxTypeCircle) {
+      // Circle blob
+      oCtx.strokeStyle = lineColor;
+      oCtx.lineWidth = thickness;
+      oCtx.beginPath();
+      oCtx.arc(blob.x, blob.y, Math.max(w, h) / 2, 0, Math.PI * 2);
+      oCtx.stroke();
+    } else if (config.boxTypeWin98) {
+      // Windows 98 style box (with title bar)
+      oCtx.strokeStyle = lineColor;
+      oCtx.lineWidth = thickness;
+      oCtx.strokeRect(x, y, w, h);
+      // Title bar
+      oCtx.fillStyle = lineColor;
+      oCtx.fillRect(x + 2, y + 2, w - 4, 12);
+      // Close button
+      oCtx.fillStyle = '#ffffff';
+      oCtx.fillRect(x + w - 14, y + 4, 8, 8);
+      oCtx.strokeStyle = '#000000';
+      oCtx.lineWidth = 1;
+      oCtx.strokeRect(x + w - 14, y + 4, 8, 8);
+      oCtx.beginPath();
+      oCtx.moveTo(x + w - 12, y + 6);
+      oCtx.lineTo(x + w - 6, y + 12);
+      oCtx.moveTo(x + w - 6, y + 6);
+      oCtx.lineTo(x + w - 12, y + 12);
+      oCtx.stroke();
+    } else if (config.boxTypeRainbowX) {
+      // Rainbow blob box with X
+      const colors = ['#ff0000', '#ff8000', '#ffff00', '#00ff00', '#0080ff', '#8000ff'];
+      const segments = 6;
+      const angleStep = (Math.PI * 2) / segments;
+
+      for (let i = 0; i < segments; i++) {
+        oCtx.strokeStyle = colors[i % colors.length];
+        oCtx.lineWidth = thickness;
+        oCtx.beginPath();
+        oCtx.arc(blob.x, blob.y, Math.max(w, h) / 2, i * angleStep, (i + 1) * angleStep);
+        oCtx.stroke();
+      }
+
+      // X in the center
+      oCtx.strokeStyle = '#ffffff';
+      oCtx.lineWidth = 2;
+      oCtx.beginPath();
+      oCtx.moveTo(blob.x - 8, blob.y - 8);
+      oCtx.lineTo(blob.x + 8, blob.y + 8);
+      oCtx.moveTo(blob.x + 8, blob.y - 8);
+      oCtx.lineTo(blob.x - 8, blob.y + 8);
+      oCtx.stroke();
+    } else if (config.boxTypeWhiteQuestion) {
+      // White box with question mark
+      oCtx.fillStyle = '#ffffff';
+      oCtx.fillRect(x, y, w, h);
+      oCtx.strokeStyle = '#000000';
+      oCtx.lineWidth = 2;
+      oCtx.strokeRect(x, y, w, h);
+
+      // Question mark
+      oCtx.fillStyle = '#000000';
+      oCtx.font = `${Math.min(w, h) * 0.6}px Arial`;
+      oCtx.textAlign = 'center';
+      oCtx.textBaseline = 'middle';
+      oCtx.fillText('?', blob.x, blob.y);
+    } else {
+      // Default rectangle box
+      oCtx.strokeStyle = lineColor;
+      oCtx.lineWidth = thickness;
+      oCtx.strokeRect(x, y, w, h);
+    }
   }
 
   renderMagnifierLinkOverlay(oCtx, blobs, sourceCanvas, primaryColor, lineColor, thickness) {
