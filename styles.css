@@ -408,9 +408,9 @@ body {
 @media (max-width: 900px) {
   .landing-grid {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
-    padding-top: 5rem;
-    padding-bottom: 3rem;
+    gap: 1.5rem;
+    padding-top: 2.5rem;
+    padding-bottom: 1.5rem;
   }
 
   .landing-copy {
@@ -419,6 +419,95 @@ body {
 
   .landing-visual {
     order: -1;
+  }
+
+  .landing-title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 0.9;
+  }
+
+  .landing-body {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin: 1rem 0 0;
+  }
+
+  .landing-meta {
+    margin-top: 1rem;
+    font-size: 0.7rem;
+  }
+
+  .landing-actions {
+    margin-top: 1.25rem;
+  }
+
+  .landing-video {
+    aspect-ratio: 16 / 12;
+  }
+
+  .landing-visual-tag {
+    font-size: 0.5rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    padding: 0.3rem 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-page {
+    min-height: auto;
+  }
+
+  .landing-page::before,
+  .landing-page::after {
+    display: none;
+  }
+
+  .landing-grid {
+    gap: 1rem;
+    padding-top: 1.75rem;
+    padding-bottom: 1rem;
+    min-height: auto;
+  }
+
+  .landing-kicker {
+    margin-bottom: 0.75rem;
+    font-size: 0.6rem;
+  }
+
+  .landing-title {
+    font-size: clamp(2rem, 5vw, 2.5rem);
+  }
+
+  .landing-body {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    margin: 0.75rem 0 0;
+    max-width: none;
+  }
+
+  .landing-meta {
+    margin-top: 0.75rem;
+    font-size: 0.65rem;
+  }
+
+  .landing-actions {
+    margin-top: 1rem;
+  }
+
+  .landing-cta {
+    min-width: 10rem;
+    padding: 0.8rem 1.1rem;
+    font-size: 0.65rem;
+  }
+
+  .landing-video {
+    aspect-ratio: 16 / 14;
+  }
+
+  .landing-visual-tag {
+    font-size: 0.48rem;
+    padding: 0.25rem 0.4rem;
   }
 }
 
