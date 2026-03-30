@@ -1,19 +1,31 @@
 import { BlobTracker } from './blobtracker.js';
 
-// Extend BlobTracker for test features
+// The test page keeps trail history, so it owns its own cap instead of relying on the main tracker.
+const MAX_TRAIL_LENGTH = 20;
+
+// TestBlobTracker layers experimental rendering controls on top of the main blob tracker.
 class TestBlobTracker extends BlobTracker {
   constructor() {
     super();
     this.glassMode = false;
     this.noiseReduction = 0;
     this.edgeEnhancement = 0;
+    this.processingRef.exportData = [];
   }
 
   updateTestConfig(config) {
-    this.glassMode = config.glassMode || false;
-    this.noiseReduction = config.noiseReduction || 0;
-    this.edgeEnhancement = config.edgeEnhancement || 0;
-    this.updateConfig(config);
+    // Pull the test-only flags out first so the base tracker config stays clean.
+    const {
+      glassMode = false,
+      noiseReduction = 0,
+      edgeEnhancement = 0,
+      ...trackerConfig
+    } = config;
+
+    this.glassMode = glassMode;
+    this.noiseReduction = noiseReduction;
+    this.edgeEnhancement = edgeEnhancement;
+    this.updateConfig(trackerConfig);
   }
 
   processFrame = () => {
@@ -27,8 +39,8 @@ class TestBlobTracker extends BlobTracker {
 
     if (!ctx || !oCtx || video.paused || video.ended) return;
 
-    // Match canvas size to video
-    if (canvas.width !== video.videoWidth) {
+    // The test scene renders at native video size so the overlay matches the source exactly.
+    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       overlay.width = video.videoWidth;
@@ -37,17 +49,17 @@ class TestBlobTracker extends BlobTracker {
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const src = cv.imread(canvas);
+    const filters = this.videoFilters;
 
-    // --- Test Filters ---
-    src.convertTo(src, -1, this.filters.contrast, this.filters.brightness);
-
-    if (this.filters.saturation !== 1) {
+    // Reuse the base video filter defaults so the test page starts from a stable image pipeline.
+    src.convertTo(src, -1, filters.contrast, filters.brightness);
+    if (filters.saturation !== 1) {
       const hsv = new cv.Mat();
       cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV);
       const channels = new cv.MatVector();
       cv.split(hsv, channels);
       const s = channels.get(1);
-      s.convertTo(s, -1, this.filters.saturation, 0);
+      s.convertTo(s, -1, filters.saturation, 0);
       cv.merge(channels, hsv);
       cv.cvtColor(hsv, src, cv.COLOR_HSV2RGB);
       hsv.delete();
@@ -55,7 +67,7 @@ class TestBlobTracker extends BlobTracker {
       s.delete();
     }
 
-    // Noise reduction
+    // Noise reduction and edge enhancement are test-only switches for quickly comparing looks.
     if (this.noiseReduction > 0) {
       const blurred = new cv.Mat();
       cv.GaussianBlur(src, blurred, new cv.Size(0, 0), this.noiseReduction);
@@ -63,7 +75,6 @@ class TestBlobTracker extends BlobTracker {
       blurred.delete();
     }
 
-    // Edge enhancement
     if (this.edgeEnhancement > 0) {
       const edges = new cv.Mat();
       cv.Canny(src, edges, 100, 200);
@@ -74,23 +85,26 @@ class TestBlobTracker extends BlobTracker {
 
     cv.imshow(canvas, src);
 
+    // The test page exposes threshold directly, so it falls back to the slider default when unset.
     const gray = new cv.Mat();
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
 
     const binary = new cv.Mat();
-    cv.threshold(gray, binary, this.config.threshold, 255, cv.THRESH_BINARY);
+    const threshold = this.config.threshold ?? 50;
+    cv.threshold(gray, binary, threshold, 255, cv.THRESH_BINARY);
 
     const ksize = new cv.Size(this.config.blur * 2 + 1, this.config.blur * 2 + 1);
     cv.GaussianBlur(binary, binary, ksize, 0, 0, cv.BORDER_DEFAULT);
 
-    const M = cv.Mat.ones(5, 5, cv.CV_8U);
-    cv.dilate(binary, binary, M);
-    cv.erode(binary, binary, M);
+    const mask = cv.Mat.ones(5, 5, cv.CV_8U);
+    cv.dilate(binary, binary, mask);
+    cv.erode(binary, binary, mask);
 
     const contours = new cv.MatVector();
     const hierarchy = new cv.Mat();
     cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
+    // Convert raw contours into lightweight blob records for matching and drawing.
     const detectedBlobs = [];
     for (let i = 0; i < contours.size(); ++i) {
       const cnt = contours.get(i);
@@ -106,7 +120,7 @@ class TestBlobTracker extends BlobTracker {
             y: cy,
             width: rect.width,
             height: rect.height,
-            area: area
+            area
           });
         }
       }
@@ -117,6 +131,7 @@ class TestBlobTracker extends BlobTracker {
     const nextBlobs = [];
     const usedIndices = new Set();
 
+    // Match each detection against the nearest prior blob so IDs stay stable between frames.
     detectedBlobs.forEach(detected => {
       let bestMatch = null;
       let minDistance = Infinity;
@@ -134,7 +149,8 @@ class TestBlobTracker extends BlobTracker {
 
       if (bestMatch && bestIdx !== -1) {
         usedIndices.add(bestIdx);
-        const lastPositions = [...bestMatch.lastPositions, { x: bestMatch.x, y: bestMatch.y }].slice(-MAX_TRAIL_LENGTH);
+        const lastPositions = [...bestMatch.lastPositions, { x: bestMatch.x, y: bestMatch.y }]
+          .slice(-MAX_TRAIL_LENGTH);
         nextBlobs.push({
           ...bestMatch,
           x: detected.x,
@@ -144,8 +160,7 @@ class TestBlobTracker extends BlobTracker {
           area: detected.area,
           velocityX: detected.x - bestMatch.x,
           velocityY: detected.y - bestMatch.y,
-          lastPositions,
-          isActive: true
+          lastPositions
         });
       } else {
         nextBlobs.push({
@@ -158,31 +173,36 @@ class TestBlobTracker extends BlobTracker {
           velocityX: 0,
           velocityY: 0,
           lastPositions: [],
-          color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-          isActive: true
+          color: `hsl(${Math.random() * 360}, 70%, 60%)`
         });
       }
     });
 
+    // Mirror the active list onto the public tracker state so the test UI can read it directly.
     this.processingRef.activeBlobs = nextBlobs;
     this.blobs = nextBlobs;
-    this.stats = { fps: Math.round(1000 / 33), blobCount: nextBlobs.length };
+    this.stats = { fps: 30, blobCount: nextBlobs.length };
 
     this.processingRef.exportData.push({
       frame: this.processingRef.frameCount++,
-      blobs: nextBlobs.map(b => ({ id: b.id, x: b.x, y: b.y, w: b.width, h: b.height }))
+      blobs: nextBlobs.map(blob => ({
+        id: blob.id,
+        x: blob.x,
+        y: blob.y,
+        w: blob.width,
+        h: blob.height
+      }))
     });
 
-    // --- Rendering Overlays ---
     this.renderTestOverlay(oCtx, nextBlobs, this.config, canvas);
 
-    // Clean up
+    // Always release the OpenCV allocations before scheduling the next animation frame.
     src.delete();
     gray.delete();
     binary.delete();
     contours.delete();
     hierarchy.delete();
-    M.delete();
+    mask.delete();
 
     if (this.isPlaying) {
       this.requestRef = requestAnimationFrame(this.processFrame);
@@ -198,7 +218,7 @@ class TestBlobTracker extends BlobTracker {
     const trailHue = config.trailHue || 120;
     const thickness = config.lineThickness || 2;
 
-    // Glass Effect (Rendered first so other overlays stay on top)
+    // The glass pass magnifies the captured image inside each detected blob before line art is drawn.
     if (this.glassMode) {
       nextBlobs.forEach(blob => {
         const glassScale = 1.8;
@@ -208,44 +228,37 @@ class TestBlobTracker extends BlobTracker {
         const glassY = blob.y - glassH / 2;
 
         oCtx.save();
-
-        // Create circular lens mask
         oCtx.beginPath();
-        oCtx.ellipse(blob.x, blob.y, glassW / 2, glassH / 2, 0, Math.PI * 2);
+        oCtx.ellipse(blob.x, blob.y, glassW / 2, glassH / 2, 0, 0, Math.PI * 2);
         oCtx.clip();
 
-        // Draw distorted background
         const sampleScale = 0.7;
         const sw = glassW * sampleScale;
         const sh = glassH * sampleScale;
         const sx = blob.x - sw / 2;
         const sy = blob.y - sh / 2;
-
         oCtx.drawImage(sourceCanvas, sx, sy, sw, sh, glassX, glassY, glassW, glassH);
-
         oCtx.restore();
       });
     }
 
+    // The standard overlay keeps trails, boxes, centers, and IDs easy to compare by eye.
     nextBlobs.forEach(blob => {
-      // Trails
       if (config.showTrails && blob.lastPositions.length > 1) {
         oCtx.beginPath();
         oCtx.strokeStyle = `hsla(${trailHue}, 100%, 50%, 0.3)`;
         oCtx.lineWidth = thickness;
         oCtx.moveTo(blob.lastPositions[0].x, blob.lastPositions[0].y);
-        blob.lastPositions.forEach(p => oCtx.lineTo(p.x, p.y));
+        blob.lastPositions.forEach(point => oCtx.lineTo(point.x, point.y));
         oCtx.stroke();
       }
 
-      // Box
       if (config.showBoxes) {
         oCtx.strokeStyle = primaryColor;
         oCtx.lineWidth = thickness;
         oCtx.strokeRect(blob.x - blob.width / 2, blob.y - blob.height / 2, blob.width, blob.height);
       }
 
-      // Center
       if (config.showCenters) {
         oCtx.fillStyle = primaryColor;
         oCtx.beginPath();
@@ -253,7 +266,6 @@ class TestBlobTracker extends BlobTracker {
         oCtx.fill();
       }
 
-      // ID
       oCtx.fillStyle = primaryColor;
       oCtx.font = '10px JetBrains Mono';
       oCtx.fillText(`ID:${blob.id}`, blob.x - blob.width / 2, blob.y - blob.height / 2 - 5);
@@ -261,22 +273,20 @@ class TestBlobTracker extends BlobTracker {
   }
 }
 
-// Global variables
+// The test page has its own lightweight app bootstrap and control wiring.
 let testBlobTracker;
-let videoSrc = null;
 
-// Initialize the test application
 document.addEventListener('DOMContentLoaded', () => {
   testBlobTracker = new TestBlobTracker();
   testBlobTracker.init('video', 'canvas', 'overlay', null);
 
   setupTestEventListeners();
+  updateTestConfig();
   updateTestUI();
 });
 
-// Setup test event listeners
 function setupTestEventListeners() {
-  // Video upload
+  // Clicking the upload zone creates a transient file input so the test page stays minimal.
   document.getElementById('upload-zone').addEventListener('click', () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -291,39 +301,38 @@ function setupTestEventListeners() {
     input.click();
   });
 
-  // Controls
   document.getElementById('start-btn').addEventListener('click', startTestTracking);
   document.getElementById('threshold-slider').addEventListener('input', updateTestConfig);
   document.getElementById('min-size-slider').addEventListener('input', updateTestConfig);
   document.getElementById('sensitivity-slider').addEventListener('input', updateTestConfig);
   document.getElementById('trail-hue-slider').addEventListener('input', updateTestConfig);
 
-  // Toggles
+  // Checkbox and experiment sliders all feed into the shared config updater.
   document.getElementById('show-boxes').addEventListener('change', updateTestConfig);
   document.getElementById('show-centers').addEventListener('change', updateTestConfig);
   document.getElementById('show-trails').addEventListener('change', updateTestConfig);
   document.getElementById('glass-mode').addEventListener('change', updateTestConfig);
-
-  // Test features
   document.getElementById('noise-slider').addEventListener('input', updateTestConfig);
   document.getElementById('edge-slider').addEventListener('input', updateTestConfig);
 
-  // Color buttons
   document.querySelectorAll('.color-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const color = e.target.dataset.color;
+      const color = e.currentTarget.dataset.color;
       setTestBlobColor(color);
     });
   });
 }
 
 function loadTestVideo(url) {
-  videoSrc = url;
   const video = document.getElementById('video');
   video.src = url;
+  video.addEventListener('loadedmetadata', updateTestViewportInfo, { once: true });
+
   document.getElementById('upload-zone').classList.add('hidden');
   document.getElementById('video-container').classList.remove('hidden');
   document.getElementById('start-overlay').classList.remove('hidden');
+
+  // Reset the tracker state so every uploaded test clip starts from a clean slate.
   testBlobTracker.processingRef.nextId = 1;
   testBlobTracker.processingRef.activeBlobs = [];
   testBlobTracker.processingRef.frameCount = 0;
@@ -337,26 +346,28 @@ function startTestTracking() {
 }
 
 function updateTestConfig() {
+  // Every test control is read directly from the DOM to keep the sandbox page stateless.
   const config = {
-    threshold: parseInt(document.getElementById('threshold-slider').value),
-    minSize: parseInt(document.getElementById('min-size-slider').value),
-    sensitivity: parseInt(document.getElementById('sensitivity-slider').value),
+    threshold: Number.parseInt(document.getElementById('threshold-slider').value, 10),
+    minSize: Number.parseInt(document.getElementById('min-size-slider').value, 10),
+    sensitivity: Number.parseInt(document.getElementById('sensitivity-slider').value, 10),
     showBoxes: document.getElementById('show-boxes').checked,
     showCenters: document.getElementById('show-centers').checked,
     showTrails: document.getElementById('show-trails').checked,
-    trailHue: parseInt(document.getElementById('trail-hue-slider').value),
+    trailHue: Number.parseInt(document.getElementById('trail-hue-slider').value, 10),
     glassMode: document.getElementById('glass-mode').checked,
-    noiseReduction: parseInt(document.getElementById('noise-slider').value),
-    edgeEnhancement: parseInt(document.getElementById('edge-slider').value)
+    noiseReduction: Number.parseInt(document.getElementById('noise-slider').value, 10),
+    edgeEnhancement: Number.parseInt(document.getElementById('edge-slider').value, 10)
   };
   testBlobTracker.updateTestConfig(config);
 }
 
 function setTestBlobColor(color) {
+  // The selected swatch is derived from the color value instead of the implicit global event.
   document.querySelectorAll('.color-btn').forEach(btn => {
     btn.classList.remove('active');
   });
-  event.target.classList.add('active');
+  document.querySelector(`.color-btn[data-color="${color}"]`)?.classList.add('active');
   testBlobTracker.updateConfig({ blobColor: color });
 }
 
@@ -367,11 +378,10 @@ function updateTestViewportInfo() {
 }
 
 function updateTestUI() {
-  // Update stats
+  // The test dashboard only shows the latest tracker stats and the first blob sample.
   document.getElementById('fps-display').textContent = `FPS: ${testBlobTracker.stats.fps}`;
   document.getElementById('blob-count-display').textContent = `BLOBS: ${testBlobTracker.stats.blobCount}`;
 
-  // Update debug info
   const debugInfo = document.getElementById('debug-info');
   if (testBlobTracker.blobs.length > 0) {
     const blob = testBlobTracker.blobs[0];

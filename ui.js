@@ -6,6 +6,8 @@ let blobTracker;
 let videoSrc = null;
 let debugLines = [];
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 900px)';
+const DEFAULT_STAGE_RATIO = 16 / 9;
+const SPLIT_VIEW_STAGE_MULTIPLIER = 2;
 const ICONS = {
   play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z"></path></svg>',
   pause: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9"></path></svg>',
@@ -35,17 +37,22 @@ const MORE_FILTER_IDS = [
   'rgb-shift-b-slider',
   'scanline-intensity-slider'
 ];
+let selectedAspectRatioLabel = 'Original';
+let isSplitViewEnabled = false;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
   blobTracker = new BlobTracker();
-  blobTracker.init('video', 'canvas', 'overlay', 'goo-canvas');
+  blobTracker.init('video', 'canvas', 'overlay', 'goo-canvas', 'reference-canvas');
   mountVHSPanel();
   logDebug('Blob Tracker initialized.');
 
   initializeIcons();
   setupEventListeners();
   syncResponsiveLayout();
+  syncAspectRatioButton();
+  syncSplitViewState();
+  syncVideoStageSize();
   updateUI();
 });
 
@@ -62,6 +69,14 @@ function mountVHSPanel() {
 function setupEventListeners() {
   // Video upload
   document.getElementById('video-upload').addEventListener('change', handleFileUpload);
+  document.getElementById('aspect-ratio-toggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAspectRatioMenu();
+  });
+  document.querySelectorAll('.aspect-ratio-option').forEach(option => {
+    option.addEventListener('click', handleAspectRatioSelection);
+  });
+  document.getElementById('split-view-toggle').addEventListener('click', toggleSplitView);
   document.getElementById('upload-zone').addEventListener('click', () => {
     document.getElementById('video-upload').click();
   });
@@ -175,9 +190,10 @@ function setupEventListeners() {
   // Mobile panel toggles
   document.getElementById('mobile-hud-toggle').addEventListener('click', toggleHUDMobile);
   document.getElementById('mobile-hud-drawer-toggle').addEventListener('click', toggleHUDMobile);
-  window.addEventListener('resize', syncResponsiveLayout);
+  window.addEventListener('resize', handleWindowResize);
 
   // Global keyboard controls
+  document.addEventListener('click', handleDocumentClick);
   document.addEventListener('keydown', handleGlobalKeydown);
 
   updateOptimizationSettings();
@@ -207,8 +223,9 @@ function loadVideo(url) {
   const video = document.getElementById('video');
   video.src = url;
   video.muted = false;
+  video.addEventListener('loadedmetadata', handleVideoMetadataLoaded, { once: true });
   document.getElementById('upload-zone').classList.add('hidden');
-  document.getElementById('video-container').classList.remove('hidden');
+  document.getElementById('video-preview-shell').classList.remove('hidden');
   document.getElementById('start-overlay').classList.remove('hidden');
   updateStartCode();
   blobTracker.processingRef.nextId = 1;
@@ -217,6 +234,7 @@ function loadVideo(url) {
   blobTracker.clearHiddenBlobs();
   setRecordButtonState(false);
   updateViewportInfo();
+  syncVideoStageSize();
   logDebug('Video loaded.');
 }
 
@@ -308,6 +326,11 @@ function toggleHUDMobile() {
   const shell = document.getElementById('app-shell');
   const isOpen = shell.classList.toggle('mobile-hud-open');
   setHUDToggleState(isOpen);
+}
+
+function handleWindowResize() {
+  syncResponsiveLayout();
+  syncVideoStageSize();
 }
 
 function setHUDToggleState(isOpen) {
@@ -419,6 +442,106 @@ function updateConfig() {
     lineColor: blobTracker.config.lineColor || '#ffffff'
   };
   blobTracker.updateConfig(config);
+}
+
+function toggleAspectRatioMenu() {
+  const toggle = document.getElementById('aspect-ratio-toggle');
+  const menu = document.getElementById('aspect-ratio-menu');
+  if (!toggle || !menu) return;
+  const isHidden = menu.classList.toggle('hidden');
+  toggle.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+}
+
+function closeAspectRatioMenu() {
+  const toggle = document.getElementById('aspect-ratio-toggle');
+  const menu = document.getElementById('aspect-ratio-menu');
+  if (!toggle || !menu) return;
+  menu.classList.add('hidden');
+  toggle.setAttribute('aria-expanded', 'false');
+}
+
+function handleDocumentClick(e) {
+  const picker = document.getElementById('aspect-ratio-picker');
+  if (picker && !picker.contains(e.target)) {
+    closeAspectRatioMenu();
+  }
+}
+
+function handleAspectRatioSelection(e) {
+  const option = e.currentTarget;
+  const ratioValue = option.dataset.aspectValue === 'original' ? null : Number(option.dataset.aspectValue);
+  selectedAspectRatioLabel = option.dataset.aspectLabel || 'Original';
+  blobTracker.setOutputAspectRatio(Number.isFinite(ratioValue) ? ratioValue : null);
+  closeAspectRatioMenu();
+  syncAspectRatioButton();
+  syncVideoStageSize();
+  updateViewportInfo();
+  blobTracker.renderStillFrame();
+}
+
+function toggleSplitView(e) {
+  e.preventDefault();
+  isSplitViewEnabled = !isSplitViewEnabled;
+  syncSplitViewState();
+  syncVideoStageSize();
+  updateViewportInfo();
+  blobTracker.renderStillFrame();
+}
+
+function syncAspectRatioButton() {
+  const label = document.getElementById('aspect-ratio-label');
+  if (label) {
+    label.textContent = selectedAspectRatioLabel;
+  }
+
+  document.querySelectorAll('.aspect-ratio-option').forEach(option => {
+    const isActive = option.dataset.aspectLabel === selectedAspectRatioLabel;
+    option.classList.toggle('is-active', isActive);
+  });
+}
+
+function syncSplitViewState() {
+  const stage = document.getElementById('video-stage');
+  const referenceContainer = document.getElementById('reference-video-container');
+  const splitLabel = document.getElementById('split-view-label');
+  const splitToggle = document.getElementById('split-view-toggle');
+  if (!stage || !referenceContainer || !splitLabel || !splitToggle) return;
+
+  stage.classList.toggle('split-view-active', isSplitViewEnabled);
+  referenceContainer.classList.toggle('hidden', !isSplitViewEnabled);
+  splitLabel.textContent = isSplitViewEnabled ? 'On' : 'Off';
+  splitToggle.classList.toggle('is-active', isSplitViewEnabled);
+}
+
+function getDisplayAspectRatio() {
+  const baseRatio = blobTracker?.getStageAspectRatio?.() || DEFAULT_STAGE_RATIO;
+  return isSplitViewEnabled ? baseRatio * SPLIT_VIEW_STAGE_MULTIPLIER : baseRatio;
+}
+
+function syncVideoStageSize() {
+  const section = document.getElementById('video-section');
+  const stage = document.getElementById('video-stage');
+  if (!section || !stage) return;
+
+  const ratio = getDisplayAspectRatio();
+  const availableWidth = Math.max(1, section.clientWidth - 32);
+  const availableHeight = Math.max(1, section.clientHeight - 32);
+  let width = availableWidth;
+  let height = width / ratio;
+
+  if (height > availableHeight) {
+    height = availableHeight;
+    width = height * ratio;
+  }
+
+  stage.style.width = `${Math.max(1, Math.floor(width))}px`;
+  stage.style.height = `${Math.max(1, Math.floor(height))}px`;
+}
+
+function handleVideoMetadataLoaded() {
+  updateViewportInfo();
+  syncVideoStageSize();
+  blobTracker.renderStillFrame();
 }
 
 function toggleColorScience() {
@@ -555,7 +678,6 @@ function initializeIcons() {
   setPlayButtonState(false);
   document.getElementById('nav-reverse-icon').innerHTML = ICONS.reverse;
   document.getElementById('nav-stop-icon').innerHTML = ICONS.stop;
-  document.getElementById('nav-play-icon').innerHTML = ICONS.play;
   document.getElementById('nav-forward-icon').innerHTML = ICONS.forward;
   document.getElementById('nav-restart-icon').innerHTML = ICONS.restart;
   document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
@@ -599,6 +721,10 @@ function logDebug(message) {
 }
 
 function handleGlobalKeydown(e) {
+  if (e.code === 'Escape') {
+    closeAspectRatioMenu();
+    return;
+  }
   if (e.code !== 'Space') return;
   const tag = document.activeElement?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -608,8 +734,10 @@ function handleGlobalKeydown(e) {
 
 function updateViewportInfo() {
   const video = document.getElementById('video');
+  const aspectSuffix = selectedAspectRatioLabel === 'Original' ? '' : ` // ${selectedAspectRatioLabel}`;
+  const splitSuffix = isSplitViewEnabled ? ' // Split' : '';
   document.getElementById('viewport-info').textContent =
-    `Viewport_01 // ${video.videoWidth || 0}x${video.videoHeight || 0}`;
+    `Viewport_01 // ${video.videoWidth || 0}x${video.videoHeight || 0}${aspectSuffix}${splitSuffix}`;
 }
 
 // Update UI periodically

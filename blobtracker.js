@@ -71,12 +71,14 @@ class BlobTracker {
       scanlineIntensity: 0.3
     };
     this.optimization = {
-      fpsCap: 30,
-      qualityScale: 0.72
+      fpsCap: 45,
+      qualityScale: 0.75
     };
+    this.outputAspectRatio = null;
     this.videoElement = null;
     this.canvasElement = null;
     this.overlayElement = null;
+    this.referenceCanvasElement = null;
     this.gooCanvas = null;
     this.hiddenBlobIds = new Set();
     this.audioContext = null;
@@ -88,11 +90,12 @@ class BlobTracker {
     this.vhsEngine = new VHSEngine(this.processingRef);
   }
 
-  init(videoId, canvasId, overlayId, gooCanvasId) {
+  init(videoId, canvasId, overlayId, gooCanvasId, referenceCanvasId = null) {
     this.videoElement = document.getElementById(videoId);
     this.canvasElement = document.getElementById(canvasId);
     this.overlayElement = document.getElementById(overlayId);
     this.gooCanvas = document.getElementById(gooCanvasId);
+    this.referenceCanvasElement = referenceCanvasId ? document.getElementById(referenceCanvasId) : null;
 
     // Check for OpenCV
     const checkCv = setInterval(() => {
@@ -104,6 +107,18 @@ class BlobTracker {
     }, 100);
   }
 
+  setOutputAspectRatio(aspectRatio) {
+    this.outputAspectRatio = aspectRatio && aspectRatio > 0 ? aspectRatio : null;
+  }
+
+  getStageAspectRatio() {
+    if (this.outputAspectRatio) return this.outputAspectRatio;
+    const vw = this.videoElement?.videoWidth || 0;
+    const vh = this.videoElement?.videoHeight || 0;
+    if (!vw || !vh) return 16 / 9;
+    return vw / vh;
+  }
+
   getRenderDimensions() {
     if (!this.videoElement) return null;
     const vw = this.videoElement.videoWidth || 0;
@@ -112,10 +127,16 @@ class BlobTracker {
     const maxWidth = 1920;
     const maxHeight = 1080;
     const qualityScale = Math.min(1, Math.max(0.1, this.optimization.qualityScale || 1));
-    const scale = Math.min(1, maxWidth / vw, maxHeight / vh) * qualityScale;
+    const aspectRatio = this.outputAspectRatio || (vw / vh);
+    let width = maxWidth;
+    let height = width / aspectRatio;
+    if (height > maxHeight) {
+      height = maxHeight;
+      width = height * aspectRatio;
+    }
     return {
-      width: Math.max(1, Math.round(vw * scale)),
-      height: Math.max(1, Math.round(vh * scale))
+      width: Math.max(1, Math.round(width * qualityScale)),
+      height: Math.max(1, Math.round(height * qualityScale))
     };
   }
 
@@ -167,8 +188,26 @@ class BlobTracker {
       overlay.width = dims.width;
       overlay.height = dims.height;
     }
+    this.syncReferenceCanvas(dims.width, dims.height);
+    this.renderReferenceFrame(video, dims.width, dims.height);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     oCtx.clearRect(0, 0, overlay.width, overlay.height);
+  }
+
+  syncReferenceCanvas(width, height) {
+    if (!this.referenceCanvasElement) return;
+    if (this.referenceCanvasElement.width !== width || this.referenceCanvasElement.height !== height) {
+      this.referenceCanvasElement.width = width;
+      this.referenceCanvasElement.height = height;
+    }
+  }
+
+  renderReferenceFrame(video, width, height) {
+    if (!this.referenceCanvasElement) return;
+    const refCtx = this.referenceCanvasElement.getContext('2d');
+    if (!refCtx) return;
+    refCtx.clearRect(0, 0, width, height);
+    refCtx.drawImage(video, 0, 0, width, height);
   }
 
   processFrame = (timestamp = performance.now()) => {
@@ -181,7 +220,7 @@ class BlobTracker {
     const oCtx = overlay.getContext('2d');
 
     if (!ctx || !oCtx || video.paused || video.ended) return;
-    const fpsCap = Math.max(1, this.optimization.fpsCap || 30);
+    const fpsCap = Math.max(1, this.optimization.fpsCap || 45);
     const frameInterval = 1000 / fpsCap;
     if (this.lastProcessTimestamp !== null && (timestamp - this.lastProcessTimestamp) < frameInterval) {
       this.requestRef = requestAnimationFrame(this.processFrame);
@@ -200,6 +239,8 @@ class BlobTracker {
       overlay.width = dims.width;
       overlay.height = dims.height;
     }
+    this.syncReferenceCanvas(dims.width, dims.height);
+    this.renderReferenceFrame(video, dims.width, dims.height);
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const src = cv.imread(canvas);
@@ -783,13 +824,15 @@ class BlobTracker {
 
   startRecording() {
     if (!this.overlayElement || !this.canvasElement) return;
+    const recordDims = this.getRenderDimensions();
+    if (!recordDims) return;
     this.processingRef.recordedChunks = [];
     const recordCanvas = document.createElement('canvas');
     const qualityScale = Math.min(1, Math.max(0.1, this.optimization.qualityScale || 1));
-    recordCanvas.width = Math.max(320, Math.round(1280 * qualityScale));
-    recordCanvas.height = Math.max(180, Math.round(720 * qualityScale));
+    recordCanvas.width = recordDims.width;
+    recordCanvas.height = recordDims.height;
     const rCtx = recordCanvas.getContext('2d');
-    const fpsCap = Math.max(1, this.optimization.fpsCap || 30);
+    const fpsCap = Math.max(1, this.optimization.fpsCap || 45);
     const stream = recordCanvas.captureStream(fpsCap);
     const bitrate = Math.max(800_000, Math.round(5_000_000 * qualityScale));
     const recorder = new MediaRecorder(stream, {

@@ -1,5 +1,7 @@
+// VHS.js applies the heavy post-processing passes and decorates the slider UI.
 class VHSEngine {
   constructor(processingRef) {
+    // The blob tracker owns shared frame history, and the VHS engine reuses it.
     this.processingRef = processingRef;
     this.fxCanvas = null;
     this.lastOutputCanvas = null;
@@ -7,6 +9,7 @@ class VHSEngine {
   }
 
   apply(ctx, width, height, fx, blobs, hiddenBlobIds) {
+    // Skip the effect pipeline entirely when every VHS control is neutral.
     const hasEffect = (
       fx.edgeDetect > 0 ||
       fx.scanlineThickness > 0 ||
@@ -21,10 +24,13 @@ class VHSEngine {
       fx.crtGlow > 0 ||
       fx.edgeGlow > 0 ||
       fx.noiseDisplace > 0 ||
-      fx.rgbShift.r !== 0 || fx.rgbShift.g !== 0 || fx.rgbShift.b !== 0
+      fx.rgbShift.r !== 0 ||
+      fx.rgbShift.g !== 0 ||
+      fx.rgbShift.b !== 0
     );
     if (!hasEffect) return;
 
+    // Heavy modes reuse the prior frame every other tick to keep the UI responsive.
     const heavyMode = fx.pixelSortThreshold > 0 || fx.shuffleAmount > 0 || fx.echoFrames > 2;
     if (heavyMode && this.lastOutputCanvas && (this.processingRef.frameCount % 2 === 1)) {
       ctx.clearRect(0, 0, width, height);
@@ -41,6 +47,7 @@ class VHSEngine {
     const offCtx = this.fxCanvas.getContext('2d');
     if (!offCtx) return;
 
+    // Start from the already-rendered tracker frame before applying VHS distortions.
     offCtx.clearRect(0, 0, width, height);
     offCtx.drawImage(ctx.canvas, 0, 0);
 
@@ -65,6 +72,7 @@ class VHSEngine {
       }
     }
 
+    // Pull the pixels into JS once so the per-pixel pass can remap color channels.
     const imageData = offCtx.getImageData(0, 0, width, height);
     const data = imageData.data;
     const srcCopy = new Uint8ClampedArray(data);
@@ -78,6 +86,7 @@ class VHSEngine {
     const time = performance.now() * 0.001;
     const visibleBlobs = blobs.filter(blob => !hiddenBlobIds.has(blob.id));
 
+    // Sampling clamps to the canvas edges so displacement effects never read invalid pixels.
     const sampleChannel = (sx, sy, channel) => {
       const x = Math.max(0, Math.min(width - 1, sx | 0));
       const y = Math.max(0, Math.min(height - 1, sy | 0));
@@ -90,6 +99,7 @@ class VHSEngine {
         let dispX = x;
         let dispY = y;
 
+        // Heat, noise, and blob-collapse effects all feed the sampling coordinates.
         if (fx.heatAmplitude > 0) {
           dispX += Math.sin(y * 0.03 + time * fx.heatSpeed) * fx.heatAmplitude;
         }
@@ -112,10 +122,12 @@ class VHSEngine {
             dispY += (best.y - y) * (fx.scanCollapseStrength / 100) * influence;
           }
         }
+
         let r = sampleChannel(dispX + shiftR, dispY, 0);
         let g = sampleChannel(dispX + shiftG, dispY, 1);
         let b = sampleChannel(dispX + shiftB, dispY, 2);
 
+        // Gamma and scanlines shape the overall tone before edge highlights are mixed in.
         r = 255 * Math.pow(r / 255, 1 / gamma);
         g = 255 * Math.pow(g / 255, 1 / gamma);
         b = 255 * Math.pow(b / 255, 1 / gamma);
@@ -140,6 +152,7 @@ class VHSEngine {
           b = (b * (1 - edgeMix)) + (edge * edgeMix);
         }
 
+        // Edge glow adds a colored halo to strong horizontal contrast changes.
         if (fx.edgeGlow > 0 && x > 0 && y > 0 && x < width - 1 && y < height - 1) {
           const iL = (y * width + (x - 1)) * 4;
           const iR = (y * width + (x + 1)) * 4;
@@ -158,6 +171,7 @@ class VHSEngine {
       }
     }
 
+    // Pixel sort walks bright runs and reorders them for the glitch smear.
     if (fx.pixelSortThreshold > 0) {
       for (let y = 0; y < height; y += 2) {
         const rowStart = y * width * 4;
@@ -182,6 +196,7 @@ class VHSEngine {
       }
     }
 
+    // Echo history blends older frames back into the newest frame with exponential decay.
     this.processingRef.echoHistory.unshift(new Uint8ClampedArray(data));
     this.processingRef.echoHistory = this.processingRef.echoHistory.slice(0, Math.max(1, fx.echoFrames | 0));
     if (fx.echoFrames > 1 && this.processingRef.echoHistory.length > 1) {
@@ -205,6 +220,7 @@ class VHSEngine {
 
     offCtx.putImageData(imageData, 0, 0);
 
+    // Block shuffling swaps coarse tiles around the frame for the harsher breakup mode.
     if (fx.shuffleAmount > 0) {
       const block = 20;
       const swaps = Math.floor((width * height) / (block * block) * fx.shuffleAmount * 0.04);
@@ -220,6 +236,7 @@ class VHSEngine {
       }
     }
 
+    // CRT overlays happen after the main pixel pass so they sit on top of every effect.
     if (fx.crtScanlines > 0) {
       offCtx.save();
       offCtx.globalAlpha = fx.crtScanlines * 0.5;
@@ -239,6 +256,7 @@ class VHSEngine {
       offCtx.restore();
     }
 
+    // Cache the finished frame so heavy modes can reuse it on the next animation tick.
     if (!this.lastOutputCanvas) {
       this.lastOutputCanvas = document.createElement('canvas');
     }
@@ -251,17 +269,17 @@ class VHSEngine {
   }
 }
 
+// The slider helper only marks active controls and should not override HTML defaults.
 function applyVhsSliderVisualState(slider) {
   const numericValue = Number(slider.value);
   slider.classList.toggle('vhs-slider-active', Math.abs(numericValue) > 0.0001);
 }
 
 function initVHSUI() {
+  // This pass decorates the controls while preserving the ranges and defaults from the markup.
   const sliders = document.querySelectorAll('#more-tab-content input[type="range"]');
   sliders.forEach((slider) => {
     slider.classList.add('vhs-slider');
-    slider.min = '0';
-    slider.value = '0';
     applyVhsSliderVisualState(slider);
     slider.addEventListener('input', () => applyVhsSliderVisualState(slider));
   });
