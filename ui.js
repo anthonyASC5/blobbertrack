@@ -4,15 +4,12 @@ import { initVHSUI } from './VHS.js';
 // Global variables
 let blobTracker;
 let videoSrc = null;
-let debugLines = [];
 const MOBILE_BREAKPOINT_QUERY = '(max-width: 900px)';
 const DEFAULT_STAGE_RATIO = 16 / 9;
 const SPLIT_VIEW_STAGE_MULTIPLIER = 2;
 const ICONS = {
   play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z"></path></svg>',
   pause: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9"></path></svg>',
-  reverse: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 3.5L6 8l4.5 4.5M6 3.5L1.5 8 6 12.5"></path></svg>',
-  forward: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5L10 8l-4.5 4.5M10 3.5L14.5 8 10 12.5"></path></svg>',
   restart: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 7a4.5 4.5 0 1 1 1.2 3.1M3.5 7V3.5M3.5 3.5H7"></path></svg>',
   chevronRight: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"></path></svg>',
   camera: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="8" height="8" rx="1.5"></rect><path d="M10.5 7l3-1.5v5l-3-1.5z"></path></svg>',
@@ -40,12 +37,27 @@ const MORE_FILTER_IDS = [
 let selectedAspectRatioLabel = 'Original';
 let isSplitViewEnabled = false;
 
+// Debounce utility for performance optimization
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Debounced version of updateVideoFilters to prevent excessive VHS processing
+const debouncedUpdateVideoFilters = debounce(updateVideoFilters, 150);
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
   blobTracker = new BlobTracker();
   blobTracker.init('video', 'canvas', 'overlay', 'goo-canvas', 'reference-canvas');
   mountVHSPanel();
-  logDebug('Blob Tracker initialized.');
 
   initializeIcons();
   setupEventListeners();
@@ -88,13 +100,25 @@ function setupEventListeners() {
   });
   videoSection.addEventListener('drop', handleDrop);
 
+  document.getElementById('output-settings-toggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const panel = document.getElementById('output-panel');
+    const isHidden = panel.classList.toggle('hidden');
+    document.getElementById('output-settings-toggle').setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+  });
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('output-panel');
+    const toggle = document.getElementById('output-settings-toggle');
+    if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+      panel.classList.add('hidden');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+
   // Play/pause controls
-  document.getElementById('play-btn').addEventListener('click', togglePlay);
   document.getElementById('start-btn').addEventListener('click', startTracking);
   document.getElementById('nav-play-btn').addEventListener('click', togglePlay);
   document.getElementById('nav-stop-btn').addEventListener('click', stopPlayback);
-  document.getElementById('nav-reverse-btn').addEventListener('click', reverseStepPlayback);
-  document.getElementById('nav-forward-btn').addEventListener('click', fastForwardPlayback);
   document.getElementById('nav-restart-btn').addEventListener('click', restartPlayback);
 
   // Module controls
@@ -104,12 +128,12 @@ function setupEventListeners() {
   document.getElementById('matte-blob-toggle').addEventListener('click', toggleMatteBlobPanel);
   document.getElementById('blob-params-toggle').addEventListener('click', toggleBlobParamsPanel);
 
-  // Video editor
-  document.getElementById('sharpen-slider').addEventListener('input', updateVideoFilters);
-  document.getElementById('brightness-slider').addEventListener('input', updateVideoFilters);
-  document.getElementById('contrast-slider').addEventListener('input', updateVideoFilters);
-  document.getElementById('saturation-slider').addEventListener('input', updateVideoFilters);
-  MORE_FILTER_IDS.forEach(id => document.getElementById(id).addEventListener('input', updateVideoFilters));
+  // Video editor - use debounced updates for performance
+  document.getElementById('sharpen-slider').addEventListener('input', debouncedUpdateVideoFilters);
+  document.getElementById('brightness-slider').addEventListener('input', debouncedUpdateVideoFilters);
+  document.getElementById('contrast-slider').addEventListener('input', debouncedUpdateVideoFilters);
+  document.getElementById('saturation-slider').addEventListener('input', debouncedUpdateVideoFilters);
+  MORE_FILTER_IDS.forEach(id => document.getElementById(id).addEventListener('input', debouncedUpdateVideoFilters));
   document.getElementById('reset-video-filters').addEventListener('click', resetVideoFilters);
   document.getElementById('fps-cap-select').addEventListener('change', updateOptimizationSettings);
   document.getElementById('quality-select').addEventListener('change', updateOptimizationSettings);
@@ -161,6 +185,9 @@ function setupEventListeners() {
   document.getElementById('box-type-win98').addEventListener('change', updateConfig);
   document.getElementById('box-type-rainbow-x').addEventListener('change', updateConfig);
   document.getElementById('box-type-white-question').addEventListener('change', updateConfig);
+
+  // Randomizer button
+  document.getElementById('randomize-button').addEventListener('click', handleRandomize);
 
   // Color buttons
   document.querySelectorAll('.color-btn').forEach(btn => {
@@ -243,7 +270,6 @@ function loadVideo(url) {
   setRecordButtonState(false);
   updateViewportInfo();
   syncVideoStageSize();
-  logDebug('Video loaded.');
 }
 
 function startTracking() {
@@ -268,23 +294,6 @@ function stopPlayback() {
   blobTracker.stopTracking();
   document.getElementById('video').pause();
   setPlayButtonState(false);
-}
-
-function reverseStepPlayback() {
-  if (!videoSrc) return;
-  const video = document.getElementById('video');
-  stopPlayback();
-  video.currentTime = Math.max(0, video.currentTime - (1 / 3));
-  blobTracker.renderStillFrame();
-}
-
-function fastForwardPlayback() {
-  if (!videoSrc) return;
-  const video = document.getElementById('video');
-  stopPlayback();
-  const endTime = Number.isFinite(video.duration) ? video.duration : video.currentTime + (1 / 3);
-  video.currentTime = Math.min(endTime, video.currentTime + (1 / 3));
-  blobTracker.renderStillFrame();
 }
 
 function restartPlayback() {
@@ -454,6 +463,100 @@ function updateConfig() {
     boxTypeWhiteQuestion: document.getElementById('box-type-white-question').checked
   };
   blobTracker.updateConfig(config);
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getRandomFloat(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function randomizeVideoFilters() {
+  // Basic filters - safe to randomize fully
+  document.getElementById('sharpen-slider').value = getRandomInt(0, 100);
+  document.getElementById('brightness-slider').value = getRandomInt(-50, 50);
+  document.getElementById('contrast-slider').value = getRandomInt(80, 150);
+  document.getElementById('saturation-slider').value = getRandomInt(50, 150);
+
+  // VHS effects - be more conservative with expensive operations
+  const safeVhsIds = [
+    'edge-detect-slider',
+    'scanline-thickness-slider',
+    'gamma-slider',
+    'heat-speed-slider',
+    'echo-decay-slider',
+    'crt-scanlines-slider',
+    'crt-glow-slider',
+    'edge-glow-slider',
+    'edge-threshold-slider',
+    'scanline-intensity-slider'
+  ];
+
+  // Safe VHS effects
+  safeVhsIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const min = parseInt(el.min || '0', 10);
+    const max = parseInt(el.max || '100', 10);
+    el.value = getRandomInt(min, max);
+  });
+
+  // Expensive effects - keep low probability and conservative values
+  const expensiveEffects = [
+    { id: 'pixel-sort-threshold-slider', max: 50 }, // Reduced from 100
+    { id: 'scan-collapse-strength-slider', max: 30 }, // Reduced from 100
+    { id: 'noise-displace-slider', max: 20 }, // Reduced from 100
+    { id: 'rgb-shift-r-slider', max: 10 }, // Reduced from 100
+    { id: 'rgb-shift-g-slider', max: 10 },
+    { id: 'rgb-shift-b-slider', max: 10 }
+  ];
+
+  expensiveEffects.forEach(({ id, max }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // 70% chance of keeping at 0, otherwise low value
+    el.value = Math.random() < 0.7 ? 0 : getRandomInt(0, max);
+  });
+
+  updateVideoFilters();
+}
+
+function randomizeTrackingAndBlobParams() {
+  const minSize = getRandomInt(1, 400);
+  const maxSize = getRandomInt(Math.max(minSize + 10, 110), 10000);
+
+  document.getElementById('min-size-slider').value = minSize;
+  document.getElementById('max-size-slider').value = maxSize;
+  document.getElementById('sensitivity-slider').value = getRandomInt(1, 500);
+
+  document.getElementById('blur-slider').value = getRandomInt(0, 10);
+
+  ['show-boxes', 'show-centers', 'show-trails', 'show-coords', 'fx-negative', 'fx-blur', 'fx-magnifier-link', 'box-type-circle', 'box-type-win98', 'box-type-rainbow-x', 'box-type-white-question'].forEach(id => {
+    const checkbox = document.getElementById(id);
+    if (checkbox) checkbox.checked = Math.random() >= 0.5;
+  });
+
+  updateConfig();
+}
+
+function handleRandomize() {
+  const randomHue = Math.floor(Math.random() * 360);
+  const randomColor = `hsl(${randomHue}, 70%, 60%)`;
+  const actionButton = document.getElementById('randomize-button');
+  if (actionButton) {
+    actionButton.style.backgroundColor = randomColor;
+    actionButton.style.color = '#fff';
+    actionButton.style.borderColor = randomColor;
+  }
+
+  randomizeVideoFilters();
+  randomizeTrackingAndBlobParams();
+
+  // Ensure updates propagate through tracker
+  updateVideoFilters();
+  updateConfig();
 }
 
 function toggleAspectRatioMenu() {
@@ -697,16 +800,21 @@ function toggleRecording() {
 }
 
 function setPlayButtonState(isPlaying) {
-  document.getElementById('play-icon').innerHTML = isPlaying ? ICONS.pause : ICONS.play;
-  document.getElementById('play-text').textContent = isPlaying ? 'Pause' : 'Start Tracking';
-  document.getElementById('nav-play-icon').innerHTML = isPlaying ? ICONS.pause : ICONS.play;
+  const primaryPlay = document.getElementById('play-icon');
+  if (primaryPlay) {
+    primaryPlay.innerHTML = isPlaying ? ICONS.pause : ICONS.play;
+  }
+
+  const navPlay = document.getElementById('nav-play-icon');
+  if (navPlay) {
+    navPlay.innerHTML = isPlaying ? ICONS.pause : ICONS.play;
+  }
 }
 
 function initializeIcons() {
   setPlayButtonState(false);
-  document.getElementById('nav-reverse-icon').innerHTML = ICONS.reverse;
   document.getElementById('nav-stop-icon').innerHTML = ICONS.stop;
-  document.getElementById('nav-forward-icon').innerHTML = ICONS.forward;
+  document.getElementById('nav-play-icon').innerHTML = ICONS.play;
   document.getElementById('nav-restart-icon').innerHTML = ICONS.restart;
   document.getElementById('video-editor-toggle-icon').innerHTML = ICONS.chevronRight;
   document.getElementById('blob-params-toggle-icon').innerHTML = ICONS.chevronRight;
@@ -736,18 +844,6 @@ function updateStartCode() {
   if (!startCode) return;
   const randomValue = Math.floor(100000 + Math.random() * (90000000 - 100000));
   startCode.textContent = randomValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-function logDebug(message) {
-  const consoleEl = document.getElementById('debug-console');
-  if (!consoleEl) return;
-  const stamp = new Date().toISOString().slice(11, 19);
-  debugLines.push(`[${stamp}] ${message}`);
-  if (debugLines.length > 40) {
-    debugLines = debugLines.slice(debugLines.length - 40);
-  }
-  consoleEl.innerHTML = debugLines.map(line => `<div>${line}</div>`).join('');
-  consoleEl.scrollTop = consoleEl.scrollHeight;
 }
 
 function handleGlobalKeydown(e) {

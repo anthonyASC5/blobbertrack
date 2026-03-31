@@ -286,10 +286,10 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.8rem;
   color: rgba(255, 255, 255, 0.68);
   font-family: 'JetBrains Mono', 'Segoe UI', monospace;
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
@@ -305,7 +305,7 @@ body {
 .landing-title {
   margin: 0;
   font-family: "Jersey 10", sans-serif;
-  font-size: clamp(4rem, 8vw, 7rem);
+  font-size: clamp(3rem, 6vw, 5.5rem);
   line-height: 0.88;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -316,25 +316,25 @@ body {
 }
 
 .landing-body {
-  margin: 1.5rem 0 0;
+  margin: 1rem 0 0;
   max-width: 24rem;
   color: rgba(255, 255, 255, 0.62);
   font-family: 'JetBrains Mono', 'Segoe UI', monospace;
-  font-size: 0.92rem;
-  line-height: 1.8;
+  font-size: 0.82rem;
+  line-height: 1.7;
 }
 
 .landing-meta {
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   color: rgba(255, 255, 255, 0.85);
   font-family: 'JetBrains Mono', 'Segoe UI', monospace;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .landing-actions {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .landing-cta {
@@ -342,25 +342,25 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.7rem;
-  min-width: 11rem;
-  padding: 0.95rem 1.35rem;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  background: linear-gradient(135deg, #ffffff 0%, #ffd4e8 100%);
-  color: #050505;
+  min-width: 10rem;
+  padding: 0.8rem 1.2rem;
+  border: none;
+  background: #ec4899;
+  color: #ffffff;
   font-family: 'JetBrains Mono', 'Segoe UI', monospace;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   text-decoration: none;
-  box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.25), 0 18px 50px rgba(236, 72, 153, 0.18);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 8px 30px rgba(236, 72, 153, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .landing-cta:hover {
   transform: translateY(-2px);
-  filter: saturate(1.08);
-  box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.4), 0 24px 60px rgba(236, 72, 153, 0.22);
+  background: #db2777;
+  box-shadow: 0 12px 40px rgba(236, 72, 153, 0.4);
 }
 
 .landing-visual {
@@ -731,6 +731,15 @@ body {
 
 #video-editor-panel {
   box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.16);
+}
+
+#video-editor-panel > .p-4:first-child {
+  padding: 0.5rem 0.75rem;
+}
+
+#video-editor-panel #video-editor-content {
+  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
 }
 
 #video-editor-panel .control-slider.dark label {
@@ -1701,8 +1710,8 @@ body {
 }
 
 .pink-code-ui #top-bar {
-  background: #050004;
-  border-bottom: 1px solid rgba(255, 86, 182, 0.45);
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: none;
 }
 

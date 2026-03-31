@@ -30,6 +30,13 @@ class VHSEngine {
     );
     if (!hasEffect) return;
 
+    // Performance optimization: skip expensive effects on very large canvases
+    const totalPixels = width * height;
+    if (totalPixels > 1920 * 1080) { // Skip on 4K+ resolutions
+      if (fx.pixelSortThreshold > 0) fx.pixelSortThreshold = 0;
+      if (fx.shuffleAmount > 0) fx.shuffleAmount = 0;
+    }
+
     // Heavy modes reuse the prior frame every other tick to keep the UI responsive.
     const heavyMode = fx.pixelSortThreshold > 0 || fx.shuffleAmount > 0 || fx.echoFrames > 2;
     if (heavyMode && this.lastOutputCanvas && (this.processingRef.frameCount % 2 === 1)) {

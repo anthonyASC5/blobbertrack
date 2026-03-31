@@ -41,49 +41,82 @@
             <div class="nav-ready-label text-[10px] mono text-pink-400 uppercase tracking-wider">ready</div>
             <div class="h-4 w-[1px] bg-slate-200 mx-1"></div>
             <div class="flex items-center gap-1">
-                <button id="nav-reverse-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors icon-btn" title="Reverse">
-                    <span id="nav-reverse-icon" class="icon-slot"></span>
-                </button>
                 <button id="nav-stop-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors icon-btn" title="Stop">
                     <span id="nav-stop-icon" class="icon-slot"></span>
                 </button>
                 <button id="nav-play-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors icon-btn" title="Play">
                     <span id="nav-play-icon" class="icon-slot"></span>
                 </button>
-                <button id="nav-forward-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors icon-btn" title="Fast Forward">
-                    <span id="nav-forward-icon" class="icon-slot"></span>
-                </button>
                 <button id="nav-restart-btn" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors icon-btn" title="Restart">
                     <span id="nav-restart-icon" class="icon-slot"></span>
                 </button>
+                <button id="output-settings-toggle" type="button" class="p-1 rounded-sm hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors icon-btn" title="Output Settings" aria-expanded="false" aria-controls="output-panel">
+                    <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6.5"></circle>
+                        <circle cx="8" cy="8" r="1.5"></circle>
+                        <path d="M8 2.5v-1M8 14.5v1M2.5 8h-1M14.5 8h1M3.46 3.46l-.707-.707M12.247 12.247l.707.707M12.54 3.46l.707-.707M3.753 12.247l-.707.707"></path>
+                    </svg>
+                </button>
+                <button id="info-btn" class="w-5 h-5 rounded-full border border-slate-500 text-slate-500 flex items-center justify-center text-[12px] mono hover:bg-slate-100 transition-colors">
+                    i
+                </button>
+                <div id="output-panel" class="hidden absolute top-14 left-auto right-1/2 translate-x-1/2 z-50 bg-white rounded-sm shadow-lg border border-slate-200 p-4 w-72">
+                    <div class="space-y-3">
+                        <h3 class="text-[10px] mono uppercase tracking-widest font-bold text-slate-900 pb-3 border-b border-slate-200">Output Settings</h3>
+                        <label class="block">
+                            <span class="text-[9px] mono uppercase tracking-widest text-slate-600">Quality</span>
+                            <select id="quality-select" class="w-full px-2 py-1 mt-1 border border-slate-300 rounded text-[9px] mono">
+                                <option value="0.50">50%</option>
+                                <option value="0.75" selected>75%</option>
+                                <option value="0.80">80%</option>
+                                <option value="0.20">20%</option>
+                                <option value="0.30">30%</option>
+                                <option value="0.10">10%</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-[9px] mono uppercase tracking-widest text-slate-600">Frame Rate</span>
+                            <select id="fps-cap-select" class="w-full px-2 py-1 mt-1 border border-slate-300 rounded text-[9px] mono">
+                                <option value="60">60 FPS</option>
+                                <option value="45" selected>45 FPS</option>
+                                <option value="35">35 FPS</option>
+                                <option value="20">20 FPS</option>
+                                <option value="10">10 FPS</option>
+                            </select>
+                        </label>
+                        <div class="space-y-2 pt-2">
+                            <span class="text-[9px] mono uppercase tracking-widest text-slate-600">Aspect Ratio</span>
+                            <div class="flex gap-1">
+                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[8px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="Original" data-aspect-value="original">Original</button>
+                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[8px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="16:9" data-aspect-value="1.7777777778">16:9</button>
+                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[8px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="4:3" data-aspect-value="1.3333333333">4:3</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <h1 id="nav-title" class="absolute left-1/2 -translate-x-1/2 text-3xl tracking-widest uppercase">BLOBBER TRACK</h1>
 
         <div class="flex items-center gap-2 z-10">
+            <button id="split-view-toggle" type="button" class="px-2 py-1 rounded-sm bg-gray-600 hover:bg-gray-700 transition-colors text-[9px] mono uppercase tracking-wider text-white">
+                <span>Split View</span>
+                <span id="split-view-label" class="ml-1 text-gray-300">Off</span>
+            </button>
             <button id="mobile-hud-toggle" class="p-1.5 rounded-sm hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors icon-btn" aria-expanded="false" aria-controls="right-column">
                 <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
                     <circle cx="8" cy="8" r="2.5"></circle>
                     <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M12.8 3.2l-1.4 1.4M4.6 11.4l-1.4 1.4"></path>
                 </svg>
             </button>
-            <label class="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-100 hover:bg-slate-200 transition-colors text-[10px] mono uppercase tracking-wider">
+            <label class="cursor-pointer flex items-center gap-2 px-2 py-1 rounded-sm bg-slate-100 hover:bg-slate-200 transition-colors text-[9px] mono uppercase tracking-wider">
                 <svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M1.5 4.5h5l1.5 1.5h6.5v6.5H1.5z"></path>
                 </svg>
                 Upload
                 <input type="file" id="video-upload" accept="video/*" class="hidden">
             </label>
-            <button id="info-btn" class="w-6 h-6 rounded-full border border-slate-900 bg-white text-slate-900 flex items-center justify-center text-[14px] mono hover:bg-slate-50 transition-colors">
-                i
-            </button>
-
-            <button id="play-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-slate-900 text-white hover:bg-slate-800 transition-colors text-[10px] mono uppercase tracking-wider disabled:opacity-50">
-                <span id="play-icon" class="icon-slot"></span>
-                <span id="play-text">Start Tracking</span>
-            </button>
-            <div class="h-4 w-[1px] bg-slate-200 mx-2"></div>
-            <button id="record-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-pink-500 text-white hover:bg-pink-400 transition-colors text-[10px] mono uppercase tracking-wider disabled:opacity-50">
+            <button id="record-btn" class="flex items-center gap-2 px-2 py-1 rounded-sm bg-pink-500 text-white hover:bg-pink-400 transition-colors text-[9px] mono uppercase tracking-wider disabled:opacity-50">
                 <span id="record-text">Play To Render</span>
                 <span id="record-icon-shell" class="w-5 h-5 rounded-sm bg-white/15 flex items-center justify-center shrink-0">
                     <span id="record-icon" class="icon-slot"></span>
@@ -181,47 +214,7 @@
                         <label class="text-[9px] mono uppercase tracking-widest text-white/60">Saturation</label>
                         <input type="range" id="saturation-slider" min="0" max="200" value="100" class="w-full">
                     </div>
-                    <button id="reset-video-filters" class="w-full py-2 text-[9px] mono uppercase tracking-widest transition-colors bg-white text-black hover:bg-white/90">Reset</button>
-                    <div class="dither-machine video-output-tab">
-                        <button id="video-output-toggle" class="dither-machine-header">
-                            <span class="dither-machine-title">Video Output</span>
-                            <span id="video-output-toggle-icon" class="icon-slot"></span>
-                        </button>
-                        <div id="video-output-content" class="dither-machine-content hidden">
-                            <div class="optimization-panel compact">
-                                <div class="optimization-grid">
-                                    <label class="optimization-field">
-                                        <span class="optimization-label mono">Quality</span>
-                                        <select id="quality-select" class="optimization-select mono">
-                                            <option value="0.50">50%</option>
-                                            <option value="0.75" selected>75%</option>
-                                            <option value="0.80">80%</option>
-                                        </select>
-                                    </label>
-                                    <label class="optimization-field">
-                                        <span class="optimization-label mono">Frame Rate</span>
-                                        <select id="fps-cap-select" class="optimization-select mono">
-                                            <option value="60">60 FPS</option>
-                                            <option value="45" selected>45 FPS</option>
-                                            <option value="35">35 FPS</option>
-                                            <option value="20">20 FPS</option>
-                                        </select>
-                                    </label>
-                                </div>
-                                <div id="aspect-ratio-picker" class="aspect-ratio-picker">
-                                    <div class="aspect-ratio-buttons">
-                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="Original" data-aspect-value="original">Original</button>
-                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="16:9" data-aspect-value="1.7777777778">16:9</button>
-                                        <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="4:3" data-aspect-value="1.3333333333">4:3</button>
-                                    </div>
-                                    <button id="split-view-toggle" type="button" class="aspect-ratio-action split-view-toggle mt-2">
-                                        <span>Split View</span>
-                                        <span id="split-view-label" class="aspect-ratio-meta">Off</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <button id="reset-video-filters" class="w-full py-1 text-[8px] mono uppercase tracking-widest transition-colors bg-white text-black hover:bg-white/90">Reset</button>
                     <div class="dither-machine more-tab">
                         <button id="more-tab-toggle" class="dither-machine-header">
                             <span class="dither-machine-title">VHS Emulator</span>
@@ -396,32 +389,58 @@
                             </div>
                         </div>
                     </div>
+                    <div class="space-y-4">
+                        <button id="video-output-toggle" class="flex items-center justify-between w-full group">
+                            <div class="flex items-center gap-2">
+                                <svg class="ui-icon text-pink-500" viewBox="0 0 16 16" aria-hidden="true">
+                                    <rect x="2.5" y="4" width="8" height="8" rx="1.5"></rect>
+                                    <path d="M10.5 7l3-1.5v5l-3-1.5z"></path>
+                                </svg>
+                                <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-500">Video Output</span>
+                            </div>
+                            <span id="video-output-toggle-icon" class="icon-slot"></span>
+                        </button>
+                        <div id="video-output-content" class="overflow-hidden space-y-4 hidden">
+                            <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-3">
+                                <div class="optimization-panel compact">
+                                    <div class="optimization-grid">
+                                        <label class="optimization-field">
+                                            <span class="optimization-label mono">Quality</span>
+                                            <select id="quality-select" class="optimization-select mono">
+                                                <option value="0.50">50%</option>
+                                                <option value="0.75" selected>75%</option>
+                                                <option value="0.80">80%</option>
+                                                <option value="0.20">20%</option>
+                                                <option value="0.30">30%</option>
+                                            </select>
+                                        </label>
+                                        <label class="optimization-field">
+                                            <span class="optimization-label mono">Frame Rate</span>
+                                            <select id="fps-cap-select" class="optimization-select mono">
+                                                <option value="60">60 FPS</option>
+                                                <option value="45" selected>45 FPS</option>
+                                                <option value="35">35 FPS</option>
+                                                <option value="20">20 FPS</option>
+                                            </select>
+                                        </label>
+                                    </div>
+                                    <div id="aspect-ratio-picker" class="aspect-ratio-picker">
+                                        <div class="aspect-ratio-buttons">
+                                            <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="Original" data-aspect-value="original">Original</button>
+                                            <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="16:9" data-aspect-value="1.7777777778">16:9</button>
+                                            <button type="button" class="aspect-ratio-option aspect-ratio-action mono" data-aspect-label="4:3" data-aspect-value="1.3333333333">4:3</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
             <!-- HUD Controls Panel -->
             <aside id="hud-panel" class="flex-1 flex flex-col bg-black text-white relative z-10 min-h-0">
                 <div id="hud-content" class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-8 min-h-0">
-                    <div id="tracking-logic-section" class="space-y-4">
-                        <div class="flex items-center gap-2 mb-4">
-                            <svg class="ui-icon text-white/40" viewBox="0 0 16 16" aria-hidden="true">
-                                <path d="M2.5 12.5L12.5 2.5M2.5 12.5h10M2.5 12.5v-10"></path>
-                            </svg>
-                            <span class="text-[10px] mono uppercase tracking-widest font-bold text-white/60">Tracking Logic</span>
-                        </div>
-                        <div class="control-slider dark">
-                            <label class="text-[9px] mono uppercase tracking-widest text-white/60">Min Blob Size</label>
-                            <input type="range" id="min-size-slider" min="1" max="1000" value="4" class="w-full">
-                        </div>
-                        <div class="control-slider dark">
-                            <label class="text-[9px] mono uppercase tracking-widest text-white/60">Max Blob Size</label>
-                            <input type="range" id="max-size-slider" min="100" max="10000" value="7000" class="w-full">
-                        </div>
-                        <div class="control-slider dark">
-                            <label class="text-[9px] mono uppercase tracking-widest text-white/60">Sensitivity</label>
-                            <input type="range" id="sensitivity-slider" min="1" max="500" value="360" class="w-full">
-                        </div>
-                    </div>
                     <div id="blob-params-section" class="space-y-4">
                         <div class="p-3 border border-pink-500/20 flex items-center justify-between gap-2 bg-pink-500/10 rounded-sm">
                             <div class="flex items-center gap-2">
@@ -439,6 +458,21 @@
                         </div>
                         <div id="blob-params-panel" class="overflow-hidden space-y-4 hidden">
                             <div class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-4 blob-params-panel-ui">
+                                <div class="space-y-3">
+                                    <div class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Tracking Logic</div>
+                                    <div class="control-slider dark">
+                                        <label class="text-[9px] mono uppercase tracking-widest text-white/60">Min Blob Size</label>
+                                        <input type="range" id="min-size-slider" min="1" max="1000" value="4" class="w-full">
+                                    </div>
+                                    <div class="control-slider dark">
+                                        <label class="text-[9px] mono uppercase tracking-widest text-white/60">Max Blob Size</label>
+                                        <input type="range" id="max-size-slider" min="100" max="10000" value="7000" class="w-full">
+                                    </div>
+                                    <div class="control-slider dark">
+                                        <label class="text-[9px] mono uppercase tracking-widest text-white/60">Sensitivity</label>
+                                        <input type="range" id="sensitivity-slider" min="1" max="500" value="360" class="w-full">
+                                    </div>
+                                </div>
                                 <div class="space-y-2">
                                     <div class="text-[9px] mono uppercase tracking-widest text-pink-500/60">Detection Pipeline</div>
                                     <div class="control-slider dark">
@@ -495,6 +529,7 @@
                         </div>
                         <div id="left-fx-panel" class="overflow-hidden space-y-4 hidden">
                             <div id="fx-presets-content" class="p-4 bg-pink-500/5 border border-pink-500/20 rounded-sm space-y-2 blob-params-panel-ui">
+                                <button id="randomize-button" class="w-full py-2 text-[10px] mono uppercase tracking-widest font-bold transition-colors bg-pink-500 text-white hover:bg-pink-400">RANDOM</button>
                                 <label class="blob-param-row">
                                     <span class="blob-param-name">Negative</span>
                                     <span class="blob-param-switch">
