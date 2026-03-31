@@ -1,4 +1,5 @@
 import { VHSEngine } from './VHS.js';
+import { DEFAULT_MOSHER_STATE, MosherEngine } from './Mosher.js';
 
 const MAX_TRAIL_LENGTH = 20;
 
@@ -71,9 +72,10 @@ class BlobTracker {
       scanlineIntensity: 0.3
     };
     this.optimization = {
-      fpsCap: 45,
-      qualityScale: 0.75
+      fpsCap: 27,
+      qualityScale: 0.5
     };
+    this.mosherState = { ...DEFAULT_MOSHER_STATE };
     this.outputAspectRatio = null;
     this.videoElement = null;
     this.canvasElement = null;
@@ -88,6 +90,7 @@ class BlobTracker {
     this.audioLevel = 0;
     this.fxCanvas = null;
     this.vhsEngine = new VHSEngine(this.processingRef);
+    this.mosherEngine = new MosherEngine(this.mosherState);
   }
 
   init(videoId, canvasId, overlayId, gooCanvasId, referenceCanvasId = null) {
@@ -150,6 +153,16 @@ class BlobTracker {
 
   updateOptimization(newOptimization) {
     this.optimization = { ...this.optimization, ...newOptimization };
+    this.mosherEngine.setTargetFrameInterval(1000 / Math.max(1, this.optimization.fpsCap || 27));
+  }
+
+  updateMosherState(partialState) {
+    this.mosherState = { ...this.mosherState, ...partialState };
+    this.mosherEngine.updateMosherState(partialState);
+  }
+
+  resetMosherBuffers() {
+    this.mosherEngine.resetMosherBuffers();
   }
 
   startTracking() {
@@ -192,6 +205,13 @@ class BlobTracker {
     this.renderReferenceFrame(video, dims.width, dims.height);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     oCtx.clearRect(0, 0, overlay.width, overlay.height);
+    if (this.mosherState.enabled) {
+      const stillFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const moshedFrame = this.mosherEngine.applyMosher(stillFrame, canvas.width, canvas.height, performance.now());
+      ctx.putImageData(moshedFrame, 0, 0);
+    } else {
+      this.mosherEngine.initMosher(canvas.width, canvas.height);
+    }
   }
 
   syncReferenceCanvas(width, height) {
@@ -220,7 +240,7 @@ class BlobTracker {
     const oCtx = overlay.getContext('2d');
 
     if (!ctx || !oCtx || video.paused || video.ended) return;
-    const fpsCap = Math.max(1, this.optimization.fpsCap || 45);
+    const fpsCap = Math.max(1, this.optimization.fpsCap || 27);
     const frameInterval = 1000 / fpsCap;
     if (this.lastProcessTimestamp !== null && (timestamp - this.lastProcessTimestamp) < frameInterval) {
       this.requestRef = requestAnimationFrame(this.processFrame);
@@ -229,6 +249,8 @@ class BlobTracker {
     const elapsed = this.lastProcessTimestamp === null ? frameInterval : Math.max(timestamp - this.lastProcessTimestamp, 1);
     this.lastProcessTimestamp = timestamp;
     this.updateAudioLevel();
+    this.mosherEngine.setTargetFrameInterval(frameInterval);
+    this.mosherEngine.noteFrameTime(elapsed);
 
     // Match canvas size to video
     const dims = this.getRenderDimensions();
@@ -369,6 +391,13 @@ class BlobTracker {
     this.processingRef.frameCount++;
 
     cv.imshow(canvas, src);
+    if (this.mosherState.enabled) {
+      const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const moshedFrame = this.mosherEngine.applyMosher(currentFrame, canvas.width, canvas.height, timestamp);
+      ctx.putImageData(moshedFrame, 0, 0);
+    } else {
+      this.mosherEngine.initMosher(canvas.width, canvas.height);
+    }
     this.applyBlobFx(ctx, canvas.width, canvas.height, nextBlobs);
     this.vhsEngine.apply(ctx, canvas.width, canvas.height, this.videoFilters, nextBlobs, this.hiddenBlobIds);
 
@@ -728,6 +757,7 @@ class BlobTracker {
     if (controlsLayer) controlsLayer.innerHTML = '';
     this.processingRef.matteTiles = [];
     this.processingRef.echoHistory = [];
+    this.resetMosherBuffers();
   }
 
   computeTileCoverage(tiles, width, height) {
@@ -906,7 +936,7 @@ class BlobTracker {
     recordCanvas.width = recordDims.width;
     recordCanvas.height = recordDims.height;
     const rCtx = recordCanvas.getContext('2d');
-    const fpsCap = Math.max(1, this.optimization.fpsCap || 45);
+    const fpsCap = Math.max(1, this.optimization.fpsCap || 27);
     const stream = recordCanvas.captureStream(fpsCap);
     const bitrate = Math.max(800_000, Math.round(5_000_000 * qualityScale));
     const recorder = new MediaRecorder(stream, {

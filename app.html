@@ -64,32 +64,45 @@
                     <div class="space-y-3">
                         <h3 class="text-[10px] mono uppercase tracking-widest font-bold text-slate-900 pb-3 border-b border-slate-200">Output Settings</h3>
                         <label class="block">
-                            <span class="text-[9px] mono uppercase tracking-widest text-slate-600">Quality</span>
-                            <select id="quality-select" class="w-full px-2 py-1 mt-1 border border-slate-300 rounded text-[9px] mono">
-                                <option value="0.50">50%</option>
-                                <option value="0.75" selected>75%</option>
-                                <option value="0.80">80%</option>
-                                <option value="0.20">20%</option>
-                                <option value="0.30">30%</option>
-                                <option value="0.10">10%</option>
-                            </select>
+                            <span class="mb-1 flex items-center justify-between text-[9px] mono uppercase tracking-widest text-slate-600">
+                                <span>Quality</span>
+                                <span id="quality-current" class="text-[10px] text-slate-900">50%</span>
+                            </span>
+                            <span class="top-output-select-shell mt-1">
+                                <select id="quality-select" class="top-output-select w-full mono">
+                                    <option value="0.50" selected>50%</option>
+                                    <option value="0.75">75%</option>
+                                    <option value="0.80">80%</option>
+                                    <option value="0.20">20%</option>
+                                    <option value="0.30">30%</option>
+                                    <option value="0.10">10%</option>
+                                </select>
+                                <span class="top-output-select-icon" aria-hidden="true">▾</span>
+                            </span>
                         </label>
                         <label class="block">
-                            <span class="text-[9px] mono uppercase tracking-widest text-slate-600">Frame Rate</span>
-                            <select id="fps-cap-select" class="w-full px-2 py-1 mt-1 border border-slate-300 rounded text-[9px] mono">
-                                <option value="60">60 FPS</option>
-                                <option value="45" selected>45 FPS</option>
-                                <option value="35">35 FPS</option>
-                                <option value="20">20 FPS</option>
-                                <option value="10">10 FPS</option>
-                            </select>
+                            <span class="mb-1 flex items-center justify-between text-[9px] mono uppercase tracking-widest text-slate-600">
+                                <span>Frame Rate</span>
+                                <span id="fps-current" class="text-[10px] text-slate-900">27 FPS</span>
+                            </span>
+                            <span class="top-output-select-shell mt-1">
+                                <select id="fps-cap-select" class="top-output-select w-full mono">
+                                    <option value="27" selected>27 FPS</option>
+                                    <option value="60">60 FPS</option>
+                                    <option value="45">45 FPS</option>
+                                    <option value="35">35 FPS</option>
+                                    <option value="20">20 FPS</option>
+                                    <option value="10">10 FPS</option>
+                                </select>
+                                <span class="top-output-select-icon" aria-hidden="true">▾</span>
+                            </span>
                         </label>
                         <div class="space-y-2 pt-2">
                             <span class="text-[9px] mono uppercase tracking-widest text-slate-600">Aspect Ratio</span>
                             <div class="flex gap-1">
-                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[8px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="Original" data-aspect-value="original">Original</button>
-                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[8px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="16:9" data-aspect-value="1.7777777778">16:9</button>
-                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[8px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="4:3" data-aspect-value="1.3333333333">4:3</button>
+                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[10px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="Original" data-aspect-value="original">Original</button>
+                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[10px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="16:9" data-aspect-value="1.7777777778">16:9</button>
+                                <button type="button" class="aspect-ratio-option aspect-ratio-action mono text-[10px] px-2 py-1 border border-slate-300 rounded hover:bg-slate-100" data-aspect-label="4:3" data-aspect-value="1.3333333333">4:3</button>
                             </div>
                         </div>
                     </div>
@@ -243,14 +256,6 @@
                                     <input type="range" id="echo-decay-slider" min="0" max="100" value="70" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-emerald-300">Pixel Sort Threshold</label>
-                                    <input type="range" id="pixel-sort-threshold-slider" min="0" max="255" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-emerald-300">Scan Collapse</label>
-                                    <input type="range" id="scan-collapse-strength-slider" min="0" max="40" value="0" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">CRT Scanlines</label>
                                     <input type="range" id="crt-scanlines-slider" min="0" max="100" value="0" class="w-full more-slider">
                                 </div>
@@ -265,10 +270,6 @@
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Edge Threshold</label>
                                     <input type="range" id="edge-threshold-slider" min="0" max="255" value="50" class="w-full more-slider">
-                                </div>
-                                <div class="control-slider dark dither-control">
-                                    <label class="text-[9px] mono uppercase tracking-widest text-white/70">Noise Displace</label>
-                                    <input type="range" id="noise-displace-slider" min="0" max="30" value="0" class="w-full more-slider">
                                 </div>
                                 <div class="control-slider dark dither-control">
                                     <label class="text-[9px] mono uppercase tracking-widest text-white/70">Scanline Intensity</label>
@@ -407,8 +408,8 @@
                                         <label class="optimization-field">
                                             <span class="optimization-label mono">Quality</span>
                                             <select id="quality-select" class="optimization-select mono">
-                                                <option value="0.50">50%</option>
-                                                <option value="0.75" selected>75%</option>
+                                                <option value="0.50" selected>50%</option>
+                                                <option value="0.75">75%</option>
                                                 <option value="0.80">80%</option>
                                                 <option value="0.20">20%</option>
                                                 <option value="0.30">30%</option>
@@ -417,8 +418,9 @@
                                         <label class="optimization-field">
                                             <span class="optimization-label mono">Frame Rate</span>
                                             <select id="fps-cap-select" class="optimization-select mono">
+                                                <option value="27" selected>27 FPS</option>
                                                 <option value="60">60 FPS</option>
-                                                <option value="45" selected>45 FPS</option>
+                                                <option value="45">45 FPS</option>
                                                 <option value="35">35 FPS</option>
                                                 <option value="20">20 FPS</option>
                                             </select>
@@ -614,6 +616,15 @@
                     <div id="left-vhs-panel" class="border-b border-white/10 bg-black flex flex-col overflow-hidden vhs-left">
                         <div id="vhs-slot" class="p-2"></div>
                         <div id="more-utility-panel" class="more-utility-panel border-t border-white/10 p-2">
+                            <div class="mosher-panel border border-pink-500/20 bg-pink-500/5">
+                                <button id="mosher-toggle" class="mosher-toggle w-full flex items-center justify-between gap-2 p-2 bg-pink-500/10" type="button" aria-pressed="false">
+                                    <div class="flex items-center gap-2">
+                                        <span id="mosher-indicator" class="w-2 h-2 rounded-full bg-pink-900 scale-75 transition-transform"></span>
+                                        <span class="text-[10px] mono uppercase tracking-widest font-bold text-pink-300">Mosher</span>
+                                    </div>
+                                    <span id="mosher-toggle-text" class="text-[9px] mono uppercase tracking-widest text-pink-300/70">Off</span>
+                                </button>
+                            </div>
                         </div>
 
                     <div id="left-blob-panel" class="flex flex-col overflow-hidden min-h-0 border-b border-white/10">
@@ -682,7 +693,11 @@
                     <span class="text-lg rotate-45">×</span>
                 </button>
             </div>
-            <div class="space-y-8 text-[11px] leading-relaxed">
+            <div class="mb-6 flex gap-2 border-b border-white/10 pb-3 text-[10px] uppercase tracking-[0.22em]">
+                <button id="info-tab-controls" type="button" class="info-tab-button border border-pink-500/40 bg-pink-500/15 px-3 py-2 text-pink-100 transition-colors" data-info-tab="controls" aria-pressed="true">Controls</button>
+                <button id="info-tab-history" type="button" class="info-tab-button border border-white/10 bg-white/5 px-3 py-2 text-white/55 transition-colors" data-info-tab="history" aria-pressed="false">Version History</button>
+            </div>
+            <div id="info-tab-panel-controls" class="space-y-8 text-[11px] leading-relaxed" data-info-panel="controls">
                 <div id="left-contact-panel" class="compact-status-panel p-2 border-t border-pink-500/40 bg-pink-500/10 space-y-1">
                     <div class="text-[18px] mono uppercase tracking-[0.16em] text-pink-300 text-center">BY A. LALL // MARCH 2026</div>
                     <div class="text-[18px] mono text-pink-100 break-all text-center">all266@cornell.edu</div>
@@ -724,6 +739,22 @@
                         <div><p class="font-bold text-white mb-1">Mesh Network</p><p class="text-white/40">Connects nearby blobs with lines, showing spatial relationships.</p></div>
                         <div><p class="font-bold text-white mb-1">Coordinates</p><p class="text-white/40">Displays X,Y position text for each blob.</p></div>
                     </div>
+                </section>
+            </div>
+            <div id="info-tab-panel-history" class="hidden space-y-6 text-[11px] leading-relaxed" data-info-panel="history">
+                <section class="border border-pink-500/30 bg-pink-500/10 p-4">
+                    <div class="mb-2 flex items-baseline justify-between gap-3 border-b border-pink-500/20 pb-2">
+                        <h3 class="text-sm font-bold uppercase tracking-[0.18em] text-pink-200">v1.0</h3>
+                    </div>
+                    <p class="text-white/80">Basic UI, pink, only blobs.</p>
+                    <p class="mt-3 text-pink-100/80">Feedback: needs aspect Ratio Settings</p>
+                </section>
+                <section class="border border-pink-500/30 bg-white/5 p-4">
+                    <div class="mb-2 flex items-baseline justify-between gap-3 border-b border-pink-500/20 pb-2">
+                        <h3 class="text-sm font-bold uppercase tracking-[0.18em] text-pink-200">v1.2</h3>
+                        <span class="text-[10px] uppercase tracking-[0.18em] text-white/45">March 30, 2026</span>
+                    </div>
+                    <p class="text-white/80">Added Randomize button, intro screen, added aspect ratio settings.</p>
                 </section>
             </div>
         </div>

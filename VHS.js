@@ -17,29 +17,19 @@ class VHSEngine {
       fx.slitScanSpeed > 0 ||
       fx.heatAmplitude > 0 ||
       fx.echoFrames > 1 ||
-      fx.pixelSortThreshold > 0 ||
-      fx.scanCollapseStrength > 0 ||
       fx.shuffleAmount > 0 ||
       fx.crtScanlines > 0 ||
       fx.crtGlow > 0 ||
       fx.edgeGlow > 0 ||
-      fx.noiseDisplace > 0 ||
       fx.rgbShift.r !== 0 ||
       fx.rgbShift.g !== 0 ||
       fx.rgbShift.b !== 0
     );
     if (!hasEffect) return;
 
-    // Performance optimization: skip expensive effects on very large canvases
     const totalPixels = width * height;
-    if (totalPixels > 1920 * 1080) { // Skip on 4K+ resolutions
-      if (fx.pixelSortThreshold > 0) fx.pixelSortThreshold = 0;
-      if (fx.shuffleAmount > 0) fx.shuffleAmount = 0;
-    }
-
-    // Heavy modes reuse the prior frame every other tick to keep the UI responsive.
-    const heavyMode = fx.pixelSortThreshold > 0 || fx.shuffleAmount > 0 || fx.echoFrames > 2;
-    if (heavyMode && this.lastOutputCanvas && (this.processingRef.frameCount % 2 === 1)) {
+    const shouldReuseLastFrame = totalPixels > 1280 * 720 && this.lastOutputCanvas && (this.processingRef.frameCount % 2 === 1);
+    if (shouldReuseLastFrame) {
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(this.lastOutputCanvas, 0, 0);
       return;
@@ -91,7 +81,6 @@ class VHSEngine {
     const scanlineThickness = Math.max(0, fx.scanlineThickness | 0);
     const scanlineIntensity = fx.scanlineIntensity ?? 0.3;
     const time = performance.now() * 0.001;
-    const visibleBlobs = blobs.filter(blob => !hiddenBlobIds.has(blob.id));
 
     // Sampling clamps to the canvas edges so displacement effects never read invalid pixels.
     const sampleChannel = (sx, sy, channel) => {
@@ -104,30 +93,11 @@ class VHSEngine {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
         let dispX = x;
-        let dispY = y;
+        const dispY = y;
 
-        // Heat, noise, and blob-collapse effects all feed the sampling coordinates.
+        // Keep the pixel pass lightweight so the HUD stays responsive.
         if (fx.heatAmplitude > 0) {
           dispX += Math.sin(y * 0.03 + time * fx.heatSpeed) * fx.heatAmplitude;
-        }
-        if (fx.noiseDisplace > 0) {
-          const n = Math.sin((x + y) * 0.05 + time * fx.noiseSpeed * 3.1);
-          dispX += n * fx.noiseDisplace;
-        }
-        if (fx.scanCollapseStrength > 0 && visibleBlobs.length) {
-          let best = null;
-          let bestDist = Infinity;
-          for (const blob of visibleBlobs) {
-            const d = Math.abs(x - blob.x);
-            if (d < bestDist) {
-              bestDist = d;
-              best = blob;
-            }
-          }
-          if (best) {
-            const influence = Math.max(0, 1 - (bestDist / 180));
-            dispY += (best.y - y) * (fx.scanCollapseStrength / 100) * influence;
-          }
         }
 
         let r = sampleChannel(dispX + shiftR, dispY, 0);
@@ -178,31 +148,6 @@ class VHSEngine {
       }
     }
 
-    // Pixel sort walks bright runs and reorders them for the glitch smear.
-    if (fx.pixelSortThreshold > 0) {
-      for (let y = 0; y < height; y += 2) {
-        const rowStart = y * width * 4;
-        const segment = [];
-        for (let x = 0; x < width; x++) {
-          const i = rowStart + x * 4;
-          const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          if (brightness > fx.pixelSortThreshold) {
-            segment.push([data[i], data[i + 1], data[i + 2], data[i + 3]]);
-          } else if (segment.length) {
-            segment.sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]));
-            for (let j = 0; j < segment.length; j++) {
-              const w = x - segment.length + j;
-              const di = rowStart + w * 4;
-              data[di] = segment[j][0];
-              data[di + 1] = segment[j][1];
-              data[di + 2] = segment[j][2];
-            }
-            segment.length = 0;
-          }
-        }
-      }
-    }
-
     // Echo history blends older frames back into the newest frame with exponential decay.
     this.processingRef.echoHistory.unshift(new Uint8ClampedArray(data));
     this.processingRef.echoHistory = this.processingRef.echoHistory.slice(0, Math.max(1, fx.echoFrames | 0));
@@ -226,22 +171,6 @@ class VHSEngine {
     }
 
     offCtx.putImageData(imageData, 0, 0);
-
-    // Block shuffling swaps coarse tiles around the frame for the harsher breakup mode.
-    if (fx.shuffleAmount > 0) {
-      const block = 20;
-      const swaps = Math.floor((width * height) / (block * block) * fx.shuffleAmount * 0.04);
-      for (let i = 0; i < swaps; i++) {
-        const ax = Math.floor(Math.random() * (width / block)) * block;
-        const ay = Math.floor(Math.random() * (height / block)) * block;
-        const bx = Math.floor(Math.random() * (width / block)) * block;
-        const by = Math.floor(Math.random() * (height / block)) * block;
-        const patch = offCtx.getImageData(ax, ay, block, block);
-        const patchB = offCtx.getImageData(bx, by, block, block);
-        offCtx.putImageData(patch, bx, by);
-        offCtx.putImageData(patchB, ax, ay);
-      }
-    }
 
     // CRT overlays happen after the main pixel pass so they sit on top of every effect.
     if (fx.crtScanlines > 0) {

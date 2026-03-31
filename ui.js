@@ -8,13 +8,13 @@ const MOBILE_BREAKPOINT_QUERY = '(max-width: 900px)';
 const DEFAULT_STAGE_RATIO = 16 / 9;
 const SPLIT_VIEW_STAGE_MULTIPLIER = 2;
 const ICONS = {
-  play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z"></path></svg>',
+  play: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5l7 4.5-7 4.5z" fill="currentColor" stroke="none"></path></svg>',
   pause: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9"></path></svg>',
   restart: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 7a4.5 4.5 0 1 1 1.2 3.1M3.5 7V3.5M3.5 3.5H7"></path></svg>',
   chevronRight: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"></path></svg>',
   camera: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4" width="8" height="8" rx="1.5"></rect><path d="M10.5 7l3-1.5v5l-3-1.5z"></path></svg>',
   chevronDown: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 6L8 10.5 12.5 6"></path></svg>',
-  stop: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7"></rect></svg>'
+  stop: '<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="7" height="7" fill="currentColor" stroke="none"></rect></svg>'
 };
 const MORE_FILTER_IDS = [
   'edge-detect-slider',
@@ -22,13 +22,10 @@ const MORE_FILTER_IDS = [
   'gamma-slider',
   'heat-speed-slider',
   'echo-decay-slider',
-  'pixel-sort-threshold-slider',
-  'scan-collapse-strength-slider',
   'crt-scanlines-slider',
   'crt-glow-slider',
   'edge-glow-slider',
   'edge-threshold-slider',
-  'noise-displace-slider',
   'rgb-shift-r-slider',
   'rgb-shift-g-slider',
   'rgb-shift-b-slider',
@@ -65,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
   syncAspectRatioButton();
   syncSplitViewState();
   syncVideoStageSize();
+  syncOutputSelectReadouts();
   updateUI();
 });
 
@@ -165,6 +163,7 @@ function setupEventListeners() {
 
   // More tab
   document.getElementById('more-tab-toggle').addEventListener('click', toggleMoreTab);
+  document.getElementById('mosher-toggle').addEventListener('click', toggleMosherPanel);
 
   // Video output tab
   document.getElementById('video-output-toggle').addEventListener('click', toggleVideoOutputTab);
@@ -208,6 +207,7 @@ function setupEventListeners() {
 
   // Info modal
   document.getElementById('info-btn').addEventListener('click', () => {
+    switchInfoModalTab('controls');
     document.getElementById('info-modal').classList.remove('hidden');
   });
   document.getElementById('close-modal').addEventListener('click', () => {
@@ -215,6 +215,11 @@ function setupEventListeners() {
   });
   document.getElementById('modal-backdrop').addEventListener('click', () => {
     document.getElementById('info-modal').classList.add('hidden');
+  });
+  document.querySelectorAll('.info-tab-button').forEach(button => {
+    button.addEventListener('click', () => {
+      switchInfoModalTab(button.dataset.infoTab);
+    });
   });
 
   // Test mode button
@@ -381,14 +386,14 @@ function updateVideoFilters() {
     heatSpeed: parseInt(document.getElementById('heat-speed-slider').value) / 100,
     echoFrames: 1,
     echoDecay: parseInt(document.getElementById('echo-decay-slider').value) / 100,
-    pixelSortThreshold: parseInt(document.getElementById('pixel-sort-threshold-slider').value),
-    scanCollapseStrength: parseInt(document.getElementById('scan-collapse-strength-slider').value),
+    pixelSortThreshold: 0,
+    scanCollapseStrength: 0,
     shuffleAmount: 0,
     crtScanlines: parseInt(document.getElementById('crt-scanlines-slider').value) / 100,
     crtGlow: parseInt(document.getElementById('crt-glow-slider').value) / 100,
     edgeGlow: parseInt(document.getElementById('edge-glow-slider').value) / 100,
     edgeThreshold: parseInt(document.getElementById('edge-threshold-slider').value),
-    noiseDisplace: parseInt(document.getElementById('noise-displace-slider').value),
+    noiseDisplace: 0,
     noiseSpeed: 1,
     rgbShift: {
       r: parseInt(document.getElementById('rgb-shift-r-slider').value),
@@ -410,13 +415,10 @@ function resetVideoFilters() {
   document.getElementById('gamma-slider').value = 100;
   document.getElementById('heat-speed-slider').value = 200;
   document.getElementById('echo-decay-slider').value = 70;
-  document.getElementById('pixel-sort-threshold-slider').value = 0;
-  document.getElementById('scan-collapse-strength-slider').value = 0;
   document.getElementById('crt-scanlines-slider').value = 0;
   document.getElementById('crt-glow-slider').value = 0;
   document.getElementById('edge-glow-slider').value = 0;
   document.getElementById('edge-threshold-slider').value = 50;
-  document.getElementById('noise-displace-slider').value = 0;
   document.getElementById('rgb-shift-r-slider').value = 0;
   document.getElementById('rgb-shift-g-slider').value = 0;
   document.getElementById('rgb-shift-b-slider').value = 0;
@@ -427,10 +429,26 @@ function resetVideoFilters() {
 function updateOptimizationSettings() {
   const fpsCap = parseInt(document.getElementById('fps-cap-select').value, 10);
   const qualityScale = parseFloat(document.getElementById('quality-select').value);
+  syncOutputSelectReadouts();
   blobTracker.updateOptimization({
     fpsCap,
     qualityScale
   });
+}
+
+function syncOutputSelectReadouts() {
+  const qualitySelect = document.getElementById('quality-select');
+  const fpsSelect = document.getElementById('fps-cap-select');
+  const qualityCurrent = document.getElementById('quality-current');
+  const fpsCurrent = document.getElementById('fps-current');
+
+  if (qualitySelect && qualityCurrent) {
+    qualityCurrent.textContent = qualitySelect.options[qualitySelect.selectedIndex]?.textContent || qualitySelect.value;
+  }
+
+  if (fpsSelect && fpsCurrent) {
+    fpsCurrent.textContent = fpsSelect.options[fpsSelect.selectedIndex]?.textContent || fpsSelect.value;
+  }
 }
 
 function updateConfig() {
@@ -503,21 +521,10 @@ function randomizeVideoFilters() {
     el.value = getRandomInt(min, max);
   });
 
-  // Expensive effects - keep low probability and conservative values
-  const expensiveEffects = [
-    { id: 'pixel-sort-threshold-slider', max: 50 }, // Reduced from 100
-    { id: 'scan-collapse-strength-slider', max: 30 }, // Reduced from 100
-    { id: 'noise-displace-slider', max: 20 }, // Reduced from 100
-    { id: 'rgb-shift-r-slider', max: 10 }, // Reduced from 100
-    { id: 'rgb-shift-g-slider', max: 10 },
-    { id: 'rgb-shift-b-slider', max: 10 }
-  ];
-
-  expensiveEffects.forEach(({ id, max }) => {
+  ['rgb-shift-r-slider', 'rgb-shift-g-slider', 'rgb-shift-b-slider'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    // 70% chance of keeping at 0, otherwise low value
-    el.value = Math.random() < 0.7 ? 0 : getRandomInt(0, max);
+    el.value = Math.random() < 0.7 ? 0 : getRandomInt(-10, 10);
   });
 
   updateVideoFilters();
@@ -722,6 +729,44 @@ function toggleMatteBlobPanel() {
   }
 }
 
+function toggleMosherPanel() {
+  const indicator = document.getElementById('mosher-indicator');
+  const toggle = document.getElementById('mosher-toggle');
+  const text = document.getElementById('mosher-toggle-text');
+  const nextEnabled = !blobTracker.mosherState.enabled;
+  blobTracker.updateMosherState({ enabled: nextEnabled });
+  if (!nextEnabled) {
+    blobTracker.resetMosherBuffers();
+  }
+  toggle.setAttribute('aria-pressed', nextEnabled ? 'true' : 'false');
+  if (indicator) {
+    indicator.classList.toggle('scale-75', !nextEnabled);
+    indicator.classList.toggle('scale-125', nextEnabled);
+    indicator.classList.toggle('bg-pink-900', !nextEnabled);
+    indicator.classList.toggle('bg-pink-500', nextEnabled);
+  }
+  if (text) {
+    text.textContent = nextEnabled ? 'On' : 'Off';
+  }
+}
+
+function switchInfoModalTab(tabName) {
+  const isHistory = tabName === 'history';
+  document.getElementById('info-tab-panel-controls')?.classList.toggle('hidden', isHistory);
+  document.getElementById('info-tab-panel-history')?.classList.toggle('hidden', !isHistory);
+
+  document.querySelectorAll('.info-tab-button').forEach(button => {
+    const isActive = button.dataset.infoTab === tabName;
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    button.classList.toggle('border-pink-500/40', isActive);
+    button.classList.toggle('bg-pink-500/15', isActive);
+    button.classList.toggle('text-pink-100', isActive);
+    button.classList.toggle('border-white/10', !isActive);
+    button.classList.toggle('bg-white/5', !isActive);
+    button.classList.toggle('text-white/55', !isActive);
+  });
+}
+
 function toggleMoreTab() {
   const moreHUD = document.getElementById('more-hud-panel');
   const panel = document.getElementById('more-tab-content');
@@ -827,6 +872,7 @@ function initializeIcons() {
   setSimpleTogglePanel('left-fx-panel', false, 'fx-presets-toggle-icon');
   setIndicatorPanelState('color-science-panel', 'color-science-indicator', false);
   setIndicatorPanelState('matte-blob-panel', 'matte-blob-indicator', false);
+  blobTracker.updateMosherState({ enabled: false });
   setBlobColor('#ffffff');
   setLineColor('#ffffff');
   syncMatteBlobControls();
