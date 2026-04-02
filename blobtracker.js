@@ -18,13 +18,16 @@ class BlobTracker {
       echoHistory: []
     };
     this.requestRef = null;
+    this.trackRequestRef = null;
+    this.renderRequestRef = null;
     this.lastProcessTimestamp = null;
     this.isPlaying = false;
     this.isCvLoaded = false;
     this.config = {
       minSize: 4,
       maxSize: 7000,
-      blur: 1,
+      blur: 0,
+      cleanEdges: false,
       sensitivity: 360,
       showBoxes: true,
       showCenters: true,
@@ -73,7 +76,8 @@ class BlobTracker {
     };
     this.optimization = {
       fpsCap: 27,
-      qualityScale: 0.5
+      qualityScale: 0.5,
+      processScale: 0.25
     };
     this.mosherState = { ...DEFAULT_MOSHER_STATE };
     this.outputAspectRatio = null;
@@ -89,6 +93,9 @@ class BlobTracker {
     this.audioSource = null;
     this.audioLevel = 0;
     this.fxCanvas = null;
+    this.processingCanvas = null;
+    this.processingCtx = null;
+    this.cvResources = null;
     this.vhsEngine = new VHSEngine(this.processingRef);
     this.mosherEngine = new MosherEngine(this.mosherState);
   }
@@ -152,8 +159,12 @@ class BlobTracker {
   }
 
   updateOptimization(newOptimization) {
+    const prevProcessScale = this.optimization.processScale;
     this.optimization = { ...this.optimization, ...newOptimization };
     this.mosherEngine.setTargetFrameInterval(1000 / Math.max(1, this.optimization.fpsCap || 27));
+    if (newOptimization.processScale && newOptimization.processScale !== prevProcessScale) {
+      this.releaseCvResources();
+    }
   }
 
   updateMosherState(partialState) {
@@ -175,14 +186,18 @@ class BlobTracker {
     if (this.videoElement) {
       this.videoElement.play();
     }
-    this.processFrame();
+    this.trackLoop();
+    this.renderLoop();
   }
 
   stopTracking() {
     this.isPlaying = false;
-    if (this.requestRef) {
-      cancelAnimationFrame(this.requestRef);
-    }
+    if (this.trackRequestRef) cancelAnimationFrame(this.trackRequestRef);
+    if (this.renderRequestRef) cancelAnimationFrame(this.renderRequestRef);
+    this.trackRequestRef = null;
+    this.renderRequestRef = null;
+    this.requestRef = null;
+    this.releaseCvResources();
   }
 
   renderStillFrame() {
@@ -230,114 +245,63 @@ class BlobTracker {
     refCtx.drawImage(video, 0, 0, width, height);
   }
 
-  processFrame = (timestamp = performance.now()) => {
-    if (!this.videoElement || !this.canvasElement || !this.overlayElement || !this.isCvLoaded) return;
-    const cv = window.cv;
-    const video = this.videoElement;
-    const canvas = this.canvasElement;
-    const overlay = this.overlayElement;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const oCtx = overlay.getContext('2d');
-
-    if (!ctx || !oCtx || video.paused || video.ended) return;
-    const fpsCap = Math.max(1, this.optimization.fpsCap || 27);
-    const frameInterval = 1000 / fpsCap;
-    if (this.lastProcessTimestamp !== null && (timestamp - this.lastProcessTimestamp) < frameInterval) {
-      this.requestRef = requestAnimationFrame(this.processFrame);
-      return;
+  ensureCanvasSize(canvas, width, height) {
+    if (!canvas) return;
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
     }
-    const elapsed = this.lastProcessTimestamp === null ? frameInterval : Math.max(timestamp - this.lastProcessTimestamp, 1);
-    this.lastProcessTimestamp = timestamp;
-    this.updateAudioLevel();
-    this.mosherEngine.setTargetFrameInterval(frameInterval);
-    this.mosherEngine.noteFrameTime(elapsed);
+  }
 
-    // Match canvas size to video
-    const dims = this.getRenderDimensions();
-    if (!dims) return;
-    if (canvas.width !== dims.width || canvas.height !== dims.height) {
-      canvas.width = dims.width;
-      canvas.height = dims.height;
-      overlay.width = dims.width;
-      overlay.height = dims.height;
+  ensureProcessingResources(renderWidth, renderHeight) {
+    const processScale = Math.min(1, Math.max(0.1, this.optimization.processScale || 0.25));
+    const procWidth = Math.max(1, Math.round(renderWidth * processScale));
+    const procHeight = Math.max(1, Math.round(renderHeight * processScale));
+
+    if (!this.processingCanvas) {
+      this.processingCanvas = document.createElement('canvas');
+      this.processingCtx = this.processingCanvas.getContext('2d', { willReadFrequently: true });
     }
-    this.syncReferenceCanvas(dims.width, dims.height);
-    this.renderReferenceFrame(video, dims.width, dims.height);
+    this.ensureCanvasSize(this.processingCanvas, procWidth, procHeight);
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const src = cv.imread(canvas);
+    const needsCvResize = !this.cvResources
+      || this.cvResources.width !== procWidth
+      || this.cvResources.height !== procHeight;
 
-    // --- Video Editor Filters ---
-    // Apply brightness and contrast
-    src.convertTo(src, -1, this.videoFilters.contrast, this.videoFilters.brightness);
-
-    // Apply saturation
-    if (this.videoFilters.saturation !== 1) {
-      const hsv = new cv.Mat();
-      cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV);
-      const channels = new cv.MatVector();
-      cv.split(hsv, channels);
-      const s = channels.get(1);
-      s.convertTo(s, -1, this.videoFilters.saturation, 0);
-      cv.merge(channels, hsv);
-      cv.cvtColor(hsv, src, cv.COLOR_HSV2RGB);
-      hsv.delete();
-      channels.delete();
-      s.delete();
+    if (needsCvResize) {
+      this.releaseCvResources();
+      const cv = window.cv;
+      if (!cv?.Mat) return { procWidth, procHeight };
+      this.cvResources = {
+        width: procWidth,
+        height: procHeight,
+        gray: new cv.Mat(procHeight, procWidth, cv.CV_8UC1),
+        binary: new cv.Mat(procHeight, procWidth, cv.CV_8UC1),
+        hierarchy: new cv.Mat(),
+        contours: new cv.MatVector(),
+        morphKernel: cv.Mat.ones(5, 5, cv.CV_8U)
+      };
     }
 
-    // Sharpen via unsharp mask for cleaner edge detail.
-    if (this.videoFilters.sharpness > 0) {
-      const blurred = new cv.Mat();
-      cv.GaussianBlur(src, blurred, new cv.Size(0, 0), 1.25, 1.25, cv.BORDER_DEFAULT);
-      cv.addWeighted(src, 1 + this.videoFilters.sharpness * 1.4, blurred, -this.videoFilters.sharpness * 1.4, 0, src);
-      blurred.delete();
-    }
+    return { procWidth, procHeight };
+  }
 
-    const gray = new cv.Mat();
-    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+  releaseCvResources() {
+    if (!this.cvResources) return;
+    this.cvResources.gray?.delete();
+    this.cvResources.binary?.delete();
+    this.cvResources.hierarchy?.delete();
+    this.cvResources.contours?.delete();
+    this.cvResources.morphKernel?.delete();
+    this.cvResources = null;
+  }
 
-    const binary = new cv.Mat();
-    cv.threshold(gray, binary, 150, 255, cv.THRESH_BINARY);
-
-    const ksize = new cv.Size(this.config.blur * 2 + 1, this.config.blur * 2 + 1);
-    cv.GaussianBlur(binary, binary, ksize, 0, 0, cv.BORDER_DEFAULT);
-
-    const M = cv.Mat.ones(5, 5, cv.CV_8U);
-    cv.dilate(binary, binary, M);
-    cv.erode(binary, binary, M);
-
-    const contours = new cv.MatVector();
-    const hierarchy = new cv.Mat();
-    cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-
-    const detectedBlobs = [];
-    for (let i = 0; i < contours.size(); ++i) {
-      const cnt = contours.get(i);
-      const area = cv.contourArea(cnt);
-      if (area > this.config.minSize && area < this.config.maxSize) {
-        const rect = cv.boundingRect(cnt);
-        const moments = cv.moments(cnt);
-        if (moments.m00 !== 0) {
-          const cx = moments.m10 / moments.m00;
-          const cy = moments.m01 / moments.m00;
-          detectedBlobs.push({
-            x: cx,
-            y: cy,
-            width: rect.width,
-            height: rect.height,
-            area: area
-          });
-        }
-      }
-      cnt.delete();
-    }
-
+  updateTrackedBlobs(detectedBlobs) {
     const prevBlobs = this.processingRef.activeBlobs;
     const nextBlobs = [];
     const usedIndices = new Set();
 
-    detectedBlobs.forEach(detected => {
+    detectedBlobs.forEach((detected) => {
       let bestMatch = null;
       let minDistance = Infinity;
       let bestIdx = -1;
@@ -354,16 +318,18 @@ class BlobTracker {
 
       if (bestMatch && bestIdx !== -1) {
         usedIndices.add(bestIdx);
+        const x = bestMatch.x + (detected.x - bestMatch.x) * 0.6;
+        const y = bestMatch.y + (detected.y - bestMatch.y) * 0.6;
         const lastPositions = [...bestMatch.lastPositions, { x: bestMatch.x, y: bestMatch.y }].slice(-MAX_TRAIL_LENGTH);
         nextBlobs.push({
           ...bestMatch,
-          x: detected.x,
-          y: detected.y,
+          x,
+          y,
           width: detected.width,
           height: detected.height,
           area: detected.area,
-          velocityX: detected.x - bestMatch.x,
-          velocityY: detected.y - bestMatch.y,
+          velocityX: x - bestMatch.x,
+          velocityY: y - bestMatch.y,
           lastPositions,
           isActive: true
         });
@@ -386,11 +352,123 @@ class BlobTracker {
 
     this.processingRef.activeBlobs = nextBlobs;
     this.blobs = nextBlobs;
-    this.stats = { fps: Math.round(1000 / elapsed), blobCount: nextBlobs.length };
+    this.stats.blobCount = nextBlobs.length;
+  }
+
+  runBlobDetection(cv, video, renderWidth, renderHeight) {
+    const dims = this.ensureProcessingResources(renderWidth, renderHeight);
+    const procCtx = this.processingCtx;
+    if (!dims || !procCtx || !this.processingCanvas || !this.cvResources) return [];
+
+    const { procWidth, procHeight } = dims;
+    procCtx.clearRect(0, 0, procWidth, procHeight);
+    procCtx.drawImage(video, 0, 0, procWidth, procHeight);
+
+    const src = cv.imread(this.processingCanvas);
+    const { gray, binary, hierarchy, contours, morphKernel } = this.cvResources;
+    contours.delete();
+    this.cvResources.contours = new cv.MatVector();
+
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    if (this.config.blur > 0) {
+      const blurRadius = Math.max(0, this.config.blur | 0);
+      const ksize = new cv.Size(blurRadius * 2 + 1, blurRadius * 2 + 1);
+      cv.GaussianBlur(gray, gray, ksize, 0, 0, cv.BORDER_DEFAULT);
+    }
+    cv.threshold(gray, binary, 150, 255, cv.THRESH_BINARY);
+
+    if (this.config.cleanEdges) {
+      cv.dilate(binary, binary, morphKernel);
+      cv.erode(binary, binary, morphKernel);
+    }
+
+    cv.findContours(binary, this.cvResources.contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    const scaleX = renderWidth / procWidth;
+    const scaleY = renderHeight / procHeight;
+    const minSize = this.config.minSize / (scaleX * scaleY);
+    const maxSize = this.config.maxSize / (scaleX * scaleY);
+    const detectedBlobs = [];
+
+    for (let i = 0; i < this.cvResources.contours.size(); ++i) {
+      const cnt = this.cvResources.contours.get(i);
+      const area = cv.contourArea(cnt);
+      if (area > minSize && area < maxSize) {
+        const rect = cv.boundingRect(cnt);
+        const moments = cv.moments(cnt);
+        if (moments.m00 !== 0) {
+          detectedBlobs.push({
+            x: (moments.m10 / moments.m00) * scaleX,
+            y: (moments.m01 / moments.m00) * scaleY,
+            width: rect.width * scaleX,
+            height: rect.height * scaleY,
+            area: area * scaleX * scaleY
+          });
+        }
+      }
+      cnt.delete();
+    }
+
+    src.delete();
+    return detectedBlobs;
+  }
+
+  trackLoop = () => {
+    if (!this.videoElement || !this.isCvLoaded) return;
+    const video = this.videoElement;
+    if (video.paused || video.ended) return;
+
+    const dims = this.getRenderDimensions();
+    if (dims) {
+      const detectedBlobs = this.runBlobDetection(window.cv, video, dims.width, dims.height);
+      this.updateTrackedBlobs(detectedBlobs);
+    }
+
+    if (this.isPlaying) {
+      this.trackRequestRef = requestAnimationFrame(this.trackLoop);
+    }
+  }
+
+  renderLoop = (timestamp = performance.now()) => {
+    if (!this.videoElement || !this.canvasElement || !this.overlayElement || !this.isCvLoaded) return;
+    const video = this.videoElement;
+    const canvas = this.canvasElement;
+    const overlay = this.overlayElement;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const oCtx = overlay.getContext('2d');
+
+    if (!ctx || !oCtx || video.paused || video.ended) return;
+    const fpsCap = Math.max(1, this.optimization.fpsCap || 27);
+    const frameInterval = 1000 / fpsCap;
+    if (this.lastProcessTimestamp !== null && (timestamp - this.lastProcessTimestamp) < frameInterval) {
+      this.renderRequestRef = requestAnimationFrame(this.renderLoop);
+      this.requestRef = this.renderRequestRef;
+      return;
+    }
+
+    const elapsed = this.lastProcessTimestamp === null ? frameInterval : Math.max(timestamp - this.lastProcessTimestamp, 1);
+    this.lastProcessTimestamp = timestamp;
+    this.stats.fps = Math.round(1000 / elapsed);
+    this.updateAudioLevel();
+    this.mosherEngine.setTargetFrameInterval(frameInterval);
+    this.mosherEngine.noteFrameTime(elapsed);
+
+    const dims = this.getRenderDimensions();
+    if (!dims) return;
+    if (canvas.width !== dims.width || canvas.height !== dims.height) {
+      canvas.width = dims.width;
+      canvas.height = dims.height;
+      overlay.width = dims.width;
+      overlay.height = dims.height;
+    }
+    this.syncReferenceCanvas(dims.width, dims.height);
+    this.renderReferenceFrame(video, dims.width, dims.height);
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const nextBlobs = this.processingRef.activeBlobs;
 
     this.processingRef.frameCount++;
 
-    cv.imshow(canvas, src);
     if (this.mosherState.enabled) {
       const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const moshedFrame = this.mosherEngine.applyMosher(currentFrame, canvas.width, canvas.height, timestamp);
@@ -400,20 +478,11 @@ class BlobTracker {
     }
     this.applyBlobFx(ctx, canvas.width, canvas.height, nextBlobs);
     this.vhsEngine.apply(ctx, canvas.width, canvas.height, this.videoFilters, nextBlobs, this.hiddenBlobIds);
-
-    // --- Rendering Overlays ---
     this.renderOverlay(oCtx, nextBlobs, this.config, canvas);
 
-    // Clean up
-    src.delete();
-    gray.delete();
-    binary.delete();
-    contours.delete();
-    hierarchy.delete();
-    M.delete();
-
     if (this.isPlaying) {
-    this.requestRef = requestAnimationFrame(this.processFrame);
+      this.renderRequestRef = requestAnimationFrame(this.renderLoop);
+      this.requestRef = this.renderRequestRef;
     }
   }
 
